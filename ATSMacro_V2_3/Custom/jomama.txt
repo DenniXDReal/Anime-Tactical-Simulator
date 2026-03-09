@@ -1,0 +1,25 @@
+﻿; Custom Macro: jomama
+Custom_123|trigger|10 enemies
+Custom_chest|trigger|0 enemies
+Custom_sdasdadas|trigger|12 enemies
+Custom_123|click|1071|530|80
+Custom_123|click|1071|530|80
+Custom_123|key|s|640
+Custom_123|key|a|297
+Custom_Movement|click|922|191|80
+Custom_Movement|click|922|191|80
+Custom_Movement|key|f|94
+Custom_Movement|sleep|2000
+Custom_Movement|click|907|691|80
+Custom_Movement|click|907|691|80
+Custom_Movement|key|s|1407
+Custom_Movement|sleep|2000
+Custom_Movement|click|1148|626|80
+Custom_Movement|click|1148|626|80
+Custom_Movement|click|1148|626|80
+Custom_chest|click|945|443|80
+Custom_chest|key|s|1094
+Custom_chest|key|e|93
+Custom_sdasdadas|click|1049|527|80
+Custom_sdasdadas|click|1049|527|80
+Custom_sdasdadas|key|s|2688
