@@ -594,31 +594,34 @@ RunDemonSlayer() {
     GuiStatus.Text := "Abandon Village — Entering"
     RunCustomOrDefault("AV_Entry",      (*) => 0)
     RaidStartTime := A_TickCount
-    ; ── Entry check: wait up to 15s for Text2 (2 enemies = stage loaded) ──
+    ; ── Entry check: wait up to 45s for Text2 (2 enemies = stage loaded) ──
+    ; Give extra time for stage to fully load before counting as failed
+    Sleep(3000)  ; initial wait for stage to begin loading
     entryAttempt  := 0
-    EntryDeadline := A_TickCount + 15000
+    EntryDeadline := A_TickCount + 45000  ; 45s per attempt
     Loop {
         if (!Running)
             return
         if (A_TickCount > EntryDeadline) {
             entryAttempt += 1
-            if (entryAttempt >= 2) {
-                ; Failed twice — skip AV this cycle, return without rejoining
+            if (entryAttempt >= 3) {
+                ; Failed 3 times — skip AV this cycle
                 AVEntryFails += 1
-                GuiStatus.Text := "Abandon Village — Skipped after 2 failed entries"
+                GuiStatus.Text := "Abandon Village — Skipped after 3 failed entries"
                 return
             }
             GuiStatus.Text := "Abandon Village — Entry FAILED (attempt " entryAttempt "), retrying..."
-            Sleep(1000)
+            Sleep(2000)
             RunCustomOrDefault("AV_Entry", (*) => 0)
-            EntryDeadline := A_TickCount + 15000
+            Sleep(3000)  ; wait for stage to load after retry
+            EntryDeadline := A_TickCount + 45000
         }
         if FindText(&FoundX, &FoundY, StartX, StartY, EndX, EndY, 0, 0, Text2) {
             AVEntryFails  := 0
             GuiStatus.Text := "Abandon Village — Stage confirmed"
             break
         }
-        Sleep(500)
+        Sleep(1000)  ; poll every 1s instead of 500ms
     }
     ; Text2 already confirmed — run Step1 immediately
     GuiStatus.Text := "Abandon Village — Step 1"
@@ -655,16 +658,18 @@ RunDoubleDungeon() {
         RunCustomOrDefault("DD_EnterRaid",  (*) => 0)
         RaidStartTime   := A_TickCount
         CurrentRaidStep := 0.5
-        ; ── Entry confirmation: wait up to 15s for 12 enemies ───
-        EntryDeadline := A_TickCount + 15000
+        Sleep(3000)  ; wait for stage to begin loading
+        ; ── Entry confirmation: wait up to 45s for 12 enemies ───
+        EntryDeadline := A_TickCount + 45000
         Loop {
             if (!Running)
                 return
             if (A_TickCount > EntryDeadline) {
                 GuiStatus.Text := "Double Dungeon — Entry FAILED, retrying..."
-                Sleep(1000)
+                Sleep(2000)
                 RunCustomOrDefault("DD_EnterRaid",  (*) => 0)
-                EntryDeadline := A_TickCount + 15000
+                Sleep(3000)
+                EntryDeadline := A_TickCount + 45000
             }
             if FindText(&FoundX, &FoundY, StartX, StartY, EndX, EndY, 0, 0, Text12) {
                 GuiStatus.Text := "Double Dungeon — Stage confirmed (12 enemies)"
