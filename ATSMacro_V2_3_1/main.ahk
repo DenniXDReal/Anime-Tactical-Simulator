@@ -616,7 +616,7 @@ RunDemonSlayer() {
             Sleep(3000)  ; wait for stage to load after retry
             EntryDeadline := A_TickCount + 45000
         }
-        if FindText(&FoundX, &FoundY, StartX, StartY, EndX, EndY, 0, 0, Text2) {
+        if FindText(&FoundX, &FoundY, StartX, StartY, EndX, EndY, 0.15, 0.15, Text2) {
             AVEntryFails  := 0
             GuiStatus.Text := "Abandon Village — Stage confirmed"
             break
@@ -637,7 +637,7 @@ RunDemonSlayer() {
             ReturnToLobby()
             return
         }
-        if FindText(&FoundX, &FoundY, StartX, StartY, EndX, EndY, 0, 0, Text0) {
+        if FindText(&FoundX, &FoundY, StartX, StartY, EndX, EndY, 0.15, 0.15, Text0) {
             DemonRuns += 1
             GuiStatus.Text := "● Done  [AV: " . DemonRuns . "]"
             Sleep(5000)
@@ -671,7 +671,7 @@ RunDoubleDungeon() {
                 Sleep(3000)
                 EntryDeadline := A_TickCount + 45000
             }
-            if FindText(&FoundX, &FoundY, StartX, StartY, EndX, EndY, 0, 0, Text12) {
+            if FindText(&FoundX, &FoundY, StartX, StartY, EndX, EndY, 0.15, 0.15, Text12) {
                 GuiStatus.Text := "Double Dungeon — Stage confirmed (12 enemies)"
                 break
             }
@@ -681,7 +681,7 @@ RunDoubleDungeon() {
     }
     ; ── Step 0.5: Confirmed inside — run Step 1 ─────────────────
     if (CurrentRaidStep == 0.5) {
-        if FindText(&FoundX, &FoundY, StartX, StartY, EndX, EndY, 0, 0, Text12) {
+        if FindText(&FoundX, &FoundY, StartX, StartY, EndX, EndY, 0.15, 0.15, Text12) {
             RunCustomOrDefault("DD_Step1",      (*) => 0)
             CurrentRaidStep := 2
             Sleep(2913)   ; Step 1 total: 2563+100+250
@@ -691,47 +691,47 @@ RunDoubleDungeon() {
         return
     }
     ; ── Step 2 → 10: Enemy-count driven progression ─────────────
-    if (CurrentRaidStep == 2 && FindText(&FoundX, &FoundY, StartX, StartY, EndX, EndY, 0, 0, Text10)) {
+    if (CurrentRaidStep == 2 && FindText(&FoundX, &FoundY, StartX, StartY, EndX, EndY, 0.15, 0.15, Text10)) {
         RunCustomOrDefault("DD_Step2",      (*) => 0)
         CurrentRaidStep := 3
         Sleep(1319)   ; Step 2 total: 875+100+344
     }
-    else if (CurrentRaidStep == 3 && FindText(&FoundX, &FoundY, StartX, StartY, EndX, EndY, 0, 0, Text8)) {
+    else if (CurrentRaidStep == 3 && FindText(&FoundX, &FoundY, StartX, StartY, EndX, EndY, 0.15, 0.15, Text8)) {
         RunCustomOrDefault("DD_Step3",      (*) => 0)
         CurrentRaidStep := 4
         Sleep(3684)   ; Step 3 total: 2266+100+218+100+1000
     }
-    else if (CurrentRaidStep == 4 && FindText(&FoundX, &FoundY, StartX, StartY, EndX, EndY, 0, 0, Text6)) {
+    else if (CurrentRaidStep == 4 && FindText(&FoundX, &FoundY, StartX, StartY, EndX, EndY, 0.15, 0.15, Text6)) {
         RunCustomOrDefault("DD_Step4",      (*) => 0)
         CurrentRaidStep := 5
         Sleep(929)    ; Step 4 total: 563+100+266
     }
-    else if (CurrentRaidStep == 5 && FindText(&FoundX, &FoundY, StartX, StartY, EndX, EndY, 0, 0, Text4)) {
+    else if (CurrentRaidStep == 5 && FindText(&FoundX, &FoundY, StartX, StartY, EndX, EndY, 0.15, 0.15, Text4)) {
         RunCustomOrDefault("DD_Step5",      (*) => 0)
         CurrentRaidStep := 6
         Sleep(3607)   ; Step 5 total: 1500+100+407+100+1500
     }
-    else if (CurrentRaidStep == 6 && FindText(&FoundX, &FoundY, StartX, StartY, EndX, EndY, 0, 0, Text2)) {
+    else if (CurrentRaidStep == 6 && FindText(&FoundX, &FoundY, StartX, StartY, EndX, EndY, 0.15, 0.15, Text2)) {
         RunCustomOrDefault("DD_Step6",      (*) => 0)
         CurrentRaidStep := 7
         Sleep(1025)   ; Step 6 total: 625+100+300
     }
-    else if (CurrentRaidStep == 7 && FindText(&FoundX, &FoundY, StartX, StartY, EndX, EndY, 0, 0, Text10)) {
+    else if (CurrentRaidStep == 7 && FindText(&FoundX, &FoundY, StartX, StartY, EndX, EndY, 0.15, 0.15, Text10)) {
         RunCustomOrDefault("DD_Step7",      (*) => 0)
         CurrentRaidStep := 8
         Sleep(16711)  ; Step 7 total: 4016+100+5063+100+2438+100+1172+100+453+100+1500+100+1469
     }
-    else if (CurrentRaidStep == 8 && FindText(&FoundX, &FoundY, StartX, StartY, EndX, EndY, 0, 0, Text5)) {
+    else if (CurrentRaidStep == 8 && FindText(&FoundX, &FoundY, StartX, StartY, EndX, EndY, 0.15, 0.15, Text5)) {
         RunCustomOrDefault("DD_Step8",      (*) => 0)
         CurrentRaidStep := 9
         Sleep(19511)  ; Step 8 total: 8938+100+3610+100+2328+100+188+100+219+100+1360+100+1640+100+172+100+156
     }
-    else if (CurrentRaidStep == 9 && FindText(&FoundX, &FoundY, StartX, StartY, EndX, EndY, 0, 0, Text1)) {
+    else if (CurrentRaidStep == 9 && FindText(&FoundX, &FoundY, StartX, StartY, EndX, EndY, 0.15, 0.15, Text1)) {
         RunCustomOrDefault("DD_Step9",      (*) => 0)
         CurrentRaidStep := 10
         Sleep(6716)   ; Step 9 total: 2641+100+3032+100+843
     }
-    else if (CurrentRaidStep == 10 && FindText(&FoundX, &FoundY, StartX, StartY, EndX, EndY, 0, 0, Text0)) {
+    else if (CurrentRaidStep == 10 && FindText(&FoundX, &FoundY, StartX, StartY, EndX, EndY, 0.15, 0.15, Text0)) {
         RunCustomOrDefault("DD_Step10",     (*) => 0)
         DungeonRuns += 1
         CurrentRaidStep := 0
