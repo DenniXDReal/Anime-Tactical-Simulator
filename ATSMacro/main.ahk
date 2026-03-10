@@ -15,7 +15,7 @@ SetTimer(CheckForUpdates, -1500)
 SetDefaultMouseSpeed(0)
 CoordMode("Mouse", "Screen")
 ; ================================================================
-;   DenniXD ATS MACRO V2.3.7 — Combined Double Dungeon + Abandon Village
+;   DenniXD ATS MACRO V2.3.8 — Combined Double Dungeon + Abandon Village
 ; ================================================================
 ; ---------------- INITIALIZE FILES ----------------
 InitFiles() {
@@ -27,7 +27,7 @@ InitFiles() {
     }
     ; Create empty Sequences.txt if missing
     if (!FileExist(seqPath)) {
-        FileAppend("; DenniXD ATS Macro V2.3.7 - Sequences`n; Auto-generated on first run`n", seqPath, "UTF-8")
+        FileAppend("; DenniXD ATS Macro V2.3.8 - Sequences`n; Auto-generated on first run`n", seqPath, "UTF-8")
     }
 }
 InitFiles()
@@ -35,7 +35,7 @@ InitFiles()
 ; ---------------- INITIALIZE SETTINGS ----------------
 global IniFile        := A_ScriptDir "\Settings.ini"
 global DiscordWebhook := IniRead(IniFile, "Settings", "Webhook", "")
-global MacroVersion      := "2.3.7"
+global MacroVersion      := "2.3.8"
 global CreatorSpeed      := 33      ; macro creator's in-game speed (do not change)
 global UserSpeed         := 33      ; user's in-game speed (set in Settings)
 global SpeedScale        := 1.0     ; calculated as CreatorSpeed / UserSpeed
@@ -139,7 +139,7 @@ global Text0  := "|<>D83A37-323232$71.00000000000000000000000000000T00000000003z
 ; ================================================================
 ;   GUI SETUP  —  Modern dark card layout
 ; ================================================================
-MyGui := Gui("+AlwaysOnTop -Caption +Border", "DenniXD ATS Macro V2.3.7")
+MyGui := Gui("+AlwaysOnTop -Caption +Border", "DenniXD ATS Macro V2.3.8")
 MyGui.BackColor := "0D0D0D"
 OnMessage(0x0201, WM_LBUTTONDOWN)
 WM_LBUTTONDOWN(wParam, lParam, msg, hwnd) {
@@ -157,7 +157,7 @@ MyGui.AddText("x0 y0 w430 h3 Background7B2FFF", "")   ; purple accent strip
 MyGui.SetFont("s13 cFFFFFF Bold", "Segoe UI")
 MyGui.AddText("x16 y14 w300", "DenniXD ATS MACRO")
 MyGui.SetFont("s8 c555555 Norm", "Segoe UI")
-MyGui.AddText("x16 y32 w300", "V2.3.7  ·  Double Dungeon + Abandon Village")
+MyGui.AddText("x16 y32 w300", "V2.3.8  ·  Double Dungeon + Abandon Village")
 
 ; Close [ X ]
 MyGui.SetFont("s10 cFF4455 Bold", "Segoe UI")
@@ -397,6 +397,7 @@ StartMacro() {
     UpdateSearchArea()  ; calculate search region from current Roblox window size
 
     ; AV and Rift are real-clock based — no cooldown restore needed
+    LastRejoinTime  := A_TickCount  ; prevent hourly check firing immediately
     GuiStatus.Text  := "● Running"
     GuiStatus.Opt("c00FF99")
 
@@ -588,7 +589,7 @@ RunDynamicSlots(gmKey) {
     baseKeys := Map(
         "DD_EnterRaid",1,"DD_Step1",1,"DD_Step2",1,"DD_Step3",1,"DD_Step4",1,
         "DD_Step5",1,"DD_Step6",1,"DD_Step7",1,"DD_Step8",1,"DD_Step9",1,"DD_Step10",1,
-        "AV_Entry",1,"AV_Step1",1,"Rift_Custom",1,
+        "AV_Entry",1,"AV_Step1",1,"Rift_Entry",1,"Rift_Custom",1,
         "Raid_Entry",1,"Raid_NamexPlanet",1,"Raid_ColosseumKingdom",1,
         "Raid_DemonForest",1,"Raid_DungeonTown",1,"Raid_ReaperSociety",1,
         "Summon_DungeonTown",1,"Summon_ReaperSociety",1,"Summon_SoulSociety",1,
@@ -759,12 +760,17 @@ RunDoubleDungeon() {
         }
         return
     }
-    ; ── Step 0.5: Confirmed inside — run Step 1 ─────────────────
+    ; ── Step 0.5: Confirmed inside — verify enemy count then run Step 1 ──
     if (CurrentRaidStep == 0.5) {
+        ; Double-check: confirm 12 enemies still visible before executing
         if GetFindText().FindText(&FoundX, &FoundY, StartX, StartY, EndX, EndY, 0.15, 0.15, Text12) {
-            RunCustomOrDefault("DD_Step1",      (*) => 0)
-            CurrentRaidStep := 2
-            Sleep(2913)   ; Step 1 total: 2563+100+250
+            Sleep(300)  ; brief pause to stabilise
+            ; Re-verify after pause
+            if GetFindText().FindText(&FoundX, &FoundY, StartX, StartY, EndX, EndY, 0.15, 0.15, Text12) {
+                RunCustomOrDefault("DD_Step1",      (*) => 0)
+                CurrentRaidStep := 2
+                Sleep(2913)   ; Step 1 total: 2563+100+250
+            }
         } else {
             GuiStatus.Text := "Double Dungeon — Waiting for enemies..."
         }
@@ -777,41 +783,64 @@ RunDoubleDungeon() {
         Sleep(1319)   ; Step 2 total: 875+100+344
     }
     else if (CurrentRaidStep == 3 && GetFindText().FindText(&FoundX, &FoundY, StartX, StartY, EndX, EndY, 0.15, 0.15, Text8)) {
+        Sleep(200)  ; pause to stabilise count
+        if GetFindText().FindText(&FoundX, &FoundY, StartX, StartY, EndX, EndY, 0.15, 0.15, Text8) {
         RunCustomOrDefault("DD_Step3",      (*) => 0)
         CurrentRaidStep := 4
         Sleep(3684)   ; Step 3 total: 2266+100+218+100+1000
+        }
     }
     else if (CurrentRaidStep == 4 && GetFindText().FindText(&FoundX, &FoundY, StartX, StartY, EndX, EndY, 0.15, 0.15, Text6)) {
+        Sleep(200)  ; pause to stabilise count
+        if GetFindText().FindText(&FoundX, &FoundY, StartX, StartY, EndX, EndY, 0.15, 0.15, Text6) {
         RunCustomOrDefault("DD_Step4",      (*) => 0)
         CurrentRaidStep := 5
         Sleep(929)    ; Step 4 total: 563+100+266
+        }
     }
     else if (CurrentRaidStep == 5 && GetFindText().FindText(&FoundX, &FoundY, StartX, StartY, EndX, EndY, 0.15, 0.15, Text4)) {
+        Sleep(200)  ; pause to stabilise count
+        if GetFindText().FindText(&FoundX, &FoundY, StartX, StartY, EndX, EndY, 0.15, 0.15, Text4) {
         RunCustomOrDefault("DD_Step5",      (*) => 0)
         CurrentRaidStep := 6
         Sleep(3607)   ; Step 5 total: 1500+100+407+100+1500
+        }
     }
     else if (CurrentRaidStep == 6 && GetFindText().FindText(&FoundX, &FoundY, StartX, StartY, EndX, EndY, 0.15, 0.15, Text2)) {
+        Sleep(200)  ; pause to stabilise count
+        if GetFindText().FindText(&FoundX, &FoundY, StartX, StartY, EndX, EndY, 0.15, 0.15, Text2) {
         RunCustomOrDefault("DD_Step6",      (*) => 0)
         CurrentRaidStep := 7
         Sleep(1025)   ; Step 6 total: 625+100+300
+        }
     }
     else if (CurrentRaidStep == 7 && GetFindText().FindText(&FoundX, &FoundY, StartX, StartY, EndX, EndY, 0.15, 0.15, Text10)) {
+        Sleep(200)  ; pause to stabilise count
+        if GetFindText().FindText(&FoundX, &FoundY, StartX, StartY, EndX, EndY, 0.15, 0.15, Text10) {
         RunCustomOrDefault("DD_Step7",      (*) => 0)
         CurrentRaidStep := 8
         Sleep(16711)  ; Step 7 total: 4016+100+5063+100+2438+100+1172+100+453+100+1500+100+1469
+        }
     }
     else if (CurrentRaidStep == 8 && GetFindText().FindText(&FoundX, &FoundY, StartX, StartY, EndX, EndY, 0.15, 0.15, Text5)) {
+        Sleep(200)  ; pause to stabilise count
+        if GetFindText().FindText(&FoundX, &FoundY, StartX, StartY, EndX, EndY, 0.15, 0.15, Text5) {
         RunCustomOrDefault("DD_Step8",      (*) => 0)
         CurrentRaidStep := 9
         Sleep(19511)  ; Step 8 total: 8938+100+3610+100+2328+100+188+100+219+100+1360+100+1640+100+172+100+156
+        }
     }
     else if (CurrentRaidStep == 9 && GetFindText().FindText(&FoundX, &FoundY, StartX, StartY, EndX, EndY, 0.15, 0.15, Text1)) {
+        Sleep(200)  ; pause to stabilise count
+        if GetFindText().FindText(&FoundX, &FoundY, StartX, StartY, EndX, EndY, 0.15, 0.15, Text1) {
         RunCustomOrDefault("DD_Step9",      (*) => 0)
         CurrentRaidStep := 10
         Sleep(6716)   ; Step 9 total: 2641+100+3032+100+843
+        }
     }
     else if (CurrentRaidStep == 10 && GetFindText().FindText(&FoundX, &FoundY, StartX, StartY, EndX, EndY, 0.15, 0.15, Text0)) {
+        Sleep(200)  ; pause to stabilise count
+        if GetFindText().FindText(&FoundX, &FoundY, StartX, StartY, EndX, EndY, 0.15, 0.15, Text0) {
         RunCustomOrDefault("DD_Step10",     (*) => 0)
         DungeonRuns += 1
         CurrentRaidStep := 0
@@ -820,6 +849,7 @@ RunDoubleDungeon() {
         CaptureAndSend(false)
         ReturnToLobby()
         return
+        }
     }
     GuiStatus.Text := "Double Dungeon (Step " . CurrentRaidStep . ")"
 }
@@ -836,8 +866,8 @@ RunRift() {
     GuiStatus.Text := "Rift — Starting"
     RaidStartTime  := A_TickCount
 
-    ; Run custom Rift sequence if recorded
-    RunCustomOrDefault("Rift_Custom", (*) => 0)
+    ; Run custom Rift entry sequence (same editor system as Custom gamemode)
+    RunCustomOrDefault("Rift_Entry", (*) => 0)
 
     ; ── Step 1: Confirm match detected within 1 minute ──
     ; Checks for any difficulty text OR any enemy count text
@@ -1550,7 +1580,7 @@ CaptureAndSend(IsManualTest := false) {
     Duration := h . "h " . m . "m " . s . "s"
     global RiftRuns, RaidRuns, RaidType, CustomRuns, CustomRunName
     currStatus := MacroPaused ? "⏸ Paused" : "● Running"
-    Payload := '{"embeds": [{"title": "DenniXD ATS Macro V2.3.7","color": 8323327,'
+    Payload := '{"embeds": [{"title": "DenniXD ATS Macro V2.3.8","color": 8323327,'
              . '"image": {"url": "attachment://ss.png"},'
              . '"fields": ['
              . '{"name": "🗡 Abandon Village",  "value": "' . DemonRuns   . ' runs", "inline": true},'
@@ -1561,7 +1591,7 @@ CaptureAndSend(IsManualTest := false) {
              . '{"name": "🔄 Rejoined",        "value": "' . RejoinCount . ' times", "inline": true},'
              . '{"name": "⏱ Uptime",          "value": "' . Duration    . '", "inline": true},'
              . '{"name": "📊 Status",          "value": "' . currStatus  . '", "inline": true}'
-             . '],"footer": {"text": "DenniXD ATS V2.3.7  ·  ' . FormatTime(, "HH:mm:ss") . '"}}]}'
+             . '],"footer": {"text": "DenniXD ATS V2.3.8  ·  ' . FormatTime(, "HH:mm:ss") . '"}}]}'
     try {
         FileOpen(JsonPath, "w", "UTF-8").Write(Payload)
         RunWait('curl.exe -s -F "payload_json=<' JsonPath '" -F "file=@' SSPath '" "' EditWeb.Value '"', , "Hide")
@@ -1634,7 +1664,7 @@ GenerateDefaultFiles() {
     global FolderCustom, FolderRaids, FolderSummon
 
     hdr := "; ================================================================`n"
-          . "; DenniXD ATS Macro V2.3.7 — Movement File (auto-generated)`n"
+          . "; DenniXD ATS Macro V2.3.8 — Movement File (auto-generated)`n"
           . "; Edit steps freely. Reload via Settings > Movement Files.`n"
           . "; Format:  SlotKey|key|keyname|ms  /  |click|x|y|ms  /  |sleep|ms`n"
           . "; ================================================================`n`n"
@@ -1728,6 +1758,7 @@ GenerateDefaultFiles() {
     if (!FileExist(p)) {
         txt := hdr . "; === Rift ===`n"
         . "; Record your Rift entry in the editor and save here`n"
+        . "Rift_Entry|trigger|—`n"
         . "Rift_Custom|trigger|—`n"
         FileAppend(txt, p, "UTF-8")
     }
@@ -2250,7 +2281,8 @@ global GM_AV := [
     Map("key","AV_Step1", "label","Step 1", "trigger","After entry")
 ]
 global GM_Rift := [
-    Map("key","Rift_Custom","label","Custom","trigger","—")
+    Map("key","Rift_Entry",  "label","Entry",  "trigger","—"),
+    Map("key","Rift_Custom", "label","Custom",  "trigger","—")
 ]
 global GM_Raid_NamexPlanet := [
     Map("key","Raid_NamexPlanet", "label","Namex Planet (Raid)", "trigger","—")
@@ -2312,7 +2344,7 @@ OpenSequenceEditor() {
     EditorGamemode := "DD"
     EditorSlotKey  := "DD_EnterRaid"
 
-    EditorGui := Gui("+AlwaysOnTop -MaximizeBox", "Gamemode Editor — DenniXD ATS V2.3.7")
+    EditorGui := Gui("+AlwaysOnTop -MaximizeBox", "Gamemode Editor — DenniXD ATS V2.3.8")
     EditorGui.BackColor := "111111"
     EditorGui.OnEvent("Close", (*) => CloseSequenceEditor())
 
@@ -2452,7 +2484,7 @@ OnEditorGMChange(ctrl, *) {
     EditorSteps      := []
     EditorSlotKey    := ""
     EditorFocusedRow := 0
-    isCustom := (EditorGamemode == "Custom")
+    isCustom := (EditorGamemode == "Custom" || EditorGamemode == "Rift")
     LblSaveFile.Visible  := isCustom
     EditFileName.Visible := isCustom
     BtnSaveFile.Visible  := isCustom
@@ -2651,6 +2683,7 @@ F9:: {
 ~*f:: EditorCaptureKey("f")
 ~*e:: EditorCaptureKey("e")
 ~*r:: EditorCaptureKey("r")
+~*q:: EditorCaptureQ()
 ~*Space:: EditorCaptureKey("Space")
 ~*Enter:: EditorCaptureKey("Enter")
 ~*\:: EditorCaptureKey("\")
@@ -2669,12 +2702,21 @@ EditorCaptureKey(keyName) {
     RefreshEditorLV()
 }
 
+EditorCaptureQ() {
+    global EditorRecording, EditorSteps, EditorOpen
+    if (!IsSet(EditorRecording) || !EditorRecording || !EditorOpen)
+        return
+    ; Q = record a 500ms sleep step for spacing
+    EditorSteps.Push(Map("type","sleep","dur",500))
+    RefreshEditorLV()
+}
+
 EditorCaptureMouse() {
     global EditorRecording, EditorOpen
     if (!IsSet(EditorRecording) || !EditorRecording || !EditorOpen)
         return
     MouseGetPos(&mx, &my, &mWin)
-    edWin := WinExist("Gamemode Editor — DenniXD ATS V2.3.7")
+    edWin := WinExist("Gamemode Editor — DenniXD ATS V2.3.8")
     if (edWin && mWin == edWin)
         return
     EditorSteps.Push(Map("type","click","x",mx,"y",my,"dur",80))
@@ -2924,7 +2966,7 @@ SaveEditorSequence() {
 ; Writes multiple slot keys into one file (preserves all slots)
 SaveMovementFileSlots(path, keys) {
     global CustomSeqs, SlotTriggers
-    out := "; DenniXD ATS V2.3.7 — saved from editor`n`n"
+    out := "; DenniXD ATS V2.3.8 — saved from editor`n`n"
     for slotKey in keys {
         if (!CustomSeqs.Has(slotKey))
             continue
