@@ -967,9 +967,9 @@ CheckForUpdates(force := false) {
         fileUrl    := RawBase . fileName
         ; Preserve subfolder structure locally
         localPath  := A_ScriptDir . "\" . StrReplace(fileName, "/", "\")
-        localDir   := RegExReplace(localPath, "\[^\]+$", "")
+        SplitPath(localPath, , &localDir)
 
-        if (!DirExist(localDir))
+        if (localDir != "" && !DirExist(localDir))
             DirCreate(localDir)
 
         tmpDl := localPath . ".tmp"
