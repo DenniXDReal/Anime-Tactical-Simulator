@@ -1988,32 +1988,25 @@ RejoinPS() {
             return
         }
 
-        ; Try direct roblox:// protocol launch first (fastest, no browser needed)
+        ; Launch PS link directly — works for both roblox:// and ro.blox.com links
+        ; Never open in browser as ro.blox.com links don't resolve there
         launched := false
-        try {
-            Run(PrivateServer)
-            launched := true
-        } catch {
-            launched := false
+        Loop 3 {
+            try {
+                Run(PrivateServer)
+                launched := true
+                break
+            } catch {
+                GuiStatus.Text := "Launch attempt " . A_Index . " failed, retrying..."
+                Sleep(2000)
+            }
         }
 
-        ; Fallback: open via browser if direct launch failed
         if (!launched) {
-            GuiStatus.Text := "Direct launch failed — trying via browser..."
-            try {
-                Run("https://www.roblox.com/games/start?placeId=&linkCode=" . ParsePSLink(PrivateServer))
-            } catch {
-                ; Last resort: just try Run again after a short wait
-                Sleep(2000)
-                try {
-                    Run(PrivateServer)
-                } catch as e {
-                    GuiStatus.Text := "⚠ Failed to launch PS link: " e.Message
-                    MacroLock := false
-                    SetTimer(MainLoop, 150)
-                    return
-                }
-            }
+            GuiStatus.Text := "⚠ Failed to launch PS link after 3 attempts — check your link in Settings"
+            MacroLock := false
+            SetTimer(MainLoop, 150)
+            return
         }
         LastRejoinTime := A_TickCount
         Sleep(5000)
