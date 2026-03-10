@@ -6,7 +6,7 @@ SendMode("Event")
 SetDefaultMouseSpeed(0)
 CoordMode("Mouse", "Screen")
 ; ================================================================
-;   DenniXD ATS MACRO V2.3 — Combined Double Dungeon + Abandon Village
+;   DenniXD ATS MACRO V2.3.3 — Combined Double Dungeon + Abandon Village
 ; ================================================================
 ; ---------------- INITIALIZE FILES ----------------
 InitFiles() {
@@ -18,7 +18,7 @@ InitFiles() {
     }
     ; Create empty Sequences.txt if missing
     if (!FileExist(seqPath)) {
-        FileAppend("; DenniXD ATS Macro V2.3 - Sequences`n; Auto-generated on first run`n", seqPath, "UTF-8")
+        FileAppend("; DenniXD ATS Macro V2.3.3 - Sequences`n; Auto-generated on first run`n", seqPath, "UTF-8")
     }
 }
 InitFiles()
@@ -26,6 +26,8 @@ InitFiles()
 ; ---------------- INITIALIZE SETTINGS ----------------
 global IniFile        := A_ScriptDir "\Settings.ini"
 global DiscordWebhook := IniRead(IniFile, "Settings", "Webhook", "")
+global MacroVersion   := "2.3.3"
+global RawBase        := "https://raw.githubusercontent.com/DenniXDReal/Anime-Tactical-Simulator/main/"
 global PrivateServer  := IniRead(IniFile, "Settings", "PSLink",  "")
 global CustomColor    := IniRead(IniFile, "Settings", "UIColor", "1A1A1A")
 global Running         := false
@@ -77,6 +79,8 @@ global MovementFiles      := Map()  ; tracks which movement files are loaded
 ; e.g. CustomSeqs["DD_Step1"] := [{type:"key",key:"s",dur:500}, ...]
 global CustomSeqs         := Map()
 ; Search Area Coordinates (for FindText enemy-count overlay)
+; Search area — calculated dynamically from Roblox window at runtime
+; These are set by UpdateSearchArea() on start and after every rejoin
 global StartX := 600, StartY := 30, EndX := 850, EndY := 120
 ; ---------------- FINDTEXT CODES (Enemy Count Detection) ----------------
 global Text35 := "|<>DF4744-323232$71.0000000000000000T07y00000003zUzy0000000DzVzw0000000zz3zs0000001wz7zU0000003kSD0000000030wS000000000TtzU00000001zXzk00000003y7zk00000007yDzk00000007yTTU00000000w0D0000000S1s0S0000000w3k0w0000001wDbXs0000001zzDzk0000003zwTz00000003zkTw00000001y0Dk000000000000000000000000000000000000000000000000001"
@@ -112,12 +116,16 @@ global Text5  := "|<>E34D4B-323232$71.00000000000000000000000000000000000000000z
 global Text4  := "|<>E5514E-323232$71.00000000000000000U80000000003lw0000000007Xs000000000D7k000000000yDU000000001wT0000000003ky0000000007Vw000000000T3s000000000y7k000000001zzU000000003zz0000000007zy000000000Dzw00000000003s00000000007k0000000000DU0000000000T00000000000Q00000000000s0000000000000000000000000000000000000000000000000001"
 global Text2  := "|<>DD4441-323232$71.00000000000000000000000000000D00000000001zU0000000007zU000000000TzU000000001zz0000000003sT0000000007US000000000D0w000000000S3s0000000000Dk0000000000z00000000003y0000000000Ts0000000001z0000000000Dw0000000000Tk0000000001zzk000000003zzU000000007zz0000000007zw0000000000000000000000000000000000000001"
 global Text1  := "|<>DF4744-323232$71.00000000000000000000000000000000000000000000000000000100000000000DU0000000000z00000000003y0000000000Dw0000000000zs0000000001zk0000000003zU0000000003T00000000000y00000000001w00000000003s00000000007k0000000000DU0000000000T00000000000y00000000001w00000000003s00000000003k0000000000700000000000000001"
+global TextNightmare := "|<>FFB447-323232$141.00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000E000U000000000000000000D000S0000000000000003s1tw003s01k000000000000T0DD000T00S0000000000003w1sE003s03k000000000000TkD0000T00S0000000000003z1s0003s03k000000000000TsD70SQTS1zstsS0DC7D0zU3zVtsDzXzwDzDzbs3ztzwTy0TyDDXzwTzlztzzzUzzDzbzs3vttwTzXzyDzDzzwDztzszT0TDDDblwTbsS1yzjXwzDUDVs3tztww7XsT3kDXsyT3tw1wD0T7zDbUwT1sS1wT7nkTDUDzs3sTtww7XsD3kDXsyS3tw1zz0T1zDblwT1sS1wT7nsTDUDU03sDtwTzXsD3sDXsyTztw1w00T0zDXzwT1sTtwT7lzzDU7zk3s3tsDzXkD1zDXsy7ztw0zz0S0DD0ywS1s7tsC3UTzD03zs1k0ks07Vk60C71kQ0kks07w0000000w000000000000000000000ADU000000000000000000001zs000000000000000000000Tz0000000000000000000000zU00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000004"
+global TextMedium    := "|<>FFBC4C-323232$141.0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000620000000000000000000001ts0000000000000DU0S0000DDU0000000000001w07k0001ts0000000000000Dk1y0000D200000000000001z0Tk0001s00000000000000Dw3y0000D000000000000001zkzkDs1tssQ3lnkw0000000DyDy7zUTzD7USTzDk0000001zvzlzy7ztwy3nzzz0000000DjzSDrlzzDbkSTzzs0000001wznnsSDbtwy3nxzT0000000DbwST3nsTDbkST7lw0000001wT3nzyS3twy3nsyDU000000DVsSTznkTDbkST7lw0000001w43ns0T3twS7nsyDU000000DU0ST01zzD3zyT7lw0000001s03lyQDztsTznky7U000000D00S7zkzzD1zyS7kw0000000s03kTy3zss7vlkQ70000000200A0z024604AA10E0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000004"
+global TextEasy      := "|<>FFD258-323232$141.00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000zw000000000000000000000Tzs000000000000000000007zz000000000000000000000zzs000000000000000000007zz000000000000000000000y00000000000000000000007k00wsDsQ1k0000000000000y00DzXzrUT00000000000007zs3zwTwy3k0000000000000zz0zzXV3ky00000000000007zsDnwQ0T7U0000000000000zz1sDXw1sw00000000000007k0D1wTwDj00000000000000w01sDVzkzs00000000000003U0DVw1y3z00000000000000S00yTU1kTk00000000000003zz7zwQS1w0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000004"
+global TextHard      := "|<>FFC752-323232$141.00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000M00000000000000000000007U0000000000007U7U000000w0000000000000y0w0000007U0000000000007k7k000000w0000000000000y0y0000007U0000000000007k7k000000w0000000000000y0y1tkts7bU0000000000007k7kTzDzVzw0000000000000zzy7ztzwTzU0000000000007zzlzzDz7zw0000000000000zzyTbtw0yTU0000000000007zzXsTDUDVw0000000000000y0wS3ts1s7U0000000000007k7XkTD0D1w0000000000000w0wT3ts1wDU0000000000007U7VxzD07nw0000000000000w0wDzts0zzU0000000000003U7Uzz703zw0000000000000Q0Q3xks0DrU0000000000000000002000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000004"
 global TextLoaded := "|<>FBFFFB-323232$71.0000000000000000000000000000000000000000000003U0Tzk000000700zzU000000C003U0000000Q00700000000s00C7wDwsCDlk00QDsztkQznU00sTnznlvnr001ks77XXb3i003VkC77iDyQ0073UQC7wTss00C70ww7ks1k00QC0zsDUzns00sQ0zkC1zbk01UM0l080y3U00000000000000000000000000000000000000000000000000000000000000000000000000000000001"
 global Text0  := "|<>D83A37-323232$71.00000000000000000000000000000T00000000003z0000000000Dz0000000000zz0000000001zz0000000003ky000000000DUw000000000S1s000000000w3k000000001s7U000000003kD0000000007US000000000D0w000000000T1s000000000y7k000000000yTU000000001zy0000000001zw0000000001zk0000000001y00000000000000000000000000000000000000001"
 ; ================================================================
 ;   GUI SETUP  —  Modern dark card layout
 ; ================================================================
-MyGui := Gui("+AlwaysOnTop -Caption +Border", "DenniXD ATS Macro V2.3")
+MyGui := Gui("+AlwaysOnTop -Caption +Border", "DenniXD ATS Macro V2.3.3")
 MyGui.BackColor := "0D0D0D"
 OnMessage(0x0201, WM_LBUTTONDOWN)
 WM_LBUTTONDOWN(wParam, lParam, msg, hwnd) {
@@ -135,7 +143,7 @@ MyGui.AddText("x0 y0 w430 h3 Background7B2FFF", "")   ; purple accent strip
 MyGui.SetFont("s13 cFFFFFF Bold", "Segoe UI")
 MyGui.AddText("x16 y14 w300", "DenniXD ATS MACRO")
 MyGui.SetFont("s8 c555555 Norm", "Segoe UI")
-MyGui.AddText("x16 y32 w300", "V2.3  ·  Double Dungeon + Abandon Village")
+MyGui.AddText("x16 y32 w300", "V2.3.3  ·  Double Dungeon + Abandon Village")
 
 ; Close [ X ]
 MyGui.SetFont("s10 cFF4455 Bold", "Segoe UI")
@@ -322,8 +330,12 @@ global BtnReloadRaids := MyGui.AddButton("x134 yp+0 w110 h26 Background1A1A2A Hi
 BtnReloadRaids.OnEvent("Click", (*) => ReloadMovementFolder(FolderRaids))
 global BtnReloadSummon := MyGui.AddButton("x252 yp+0 w112 h26 Background2A1A1A Hidden", "🔄 Summon")
 BtnReloadSummon.OnEvent("Click", (*) => ReloadMovementFolder(FolderSummon))
-global BtnSave   := MyGui.AddButton("x16 yp+36 w348 h30 Background7B2FFF Hidden", "SAVE & APPLY")
+global BtnSave   := MyGui.AddButton("x16 yp+36 w168 h30 Background7B2FFF Hidden", "SAVE & APPLY")
+global BtnUpdate      := MyGui.AddButton("xp+176 yp w172 h30 Background2A2A2A Hidden", "🔄 Check Updates")
+global BtnForceUpdate := MyGui.AddButton("x16 yp+36 w348 h24 Background3A1A1A Hidden", "⚠ Force Update (re-download everything)")
 BtnSave.OnEvent("Click", SaveSettings)
+BtnUpdate.OnEvent("Click", (*) => CheckForUpdates())
+BtnForceUpdate.OnEvent("Click", (*) => CheckForUpdates(true))
 
 ; ── Summon Map Section (in settings) ─────────────────────────────
 MyGui.SetFont("s8 c7B2FFF Bold", "Segoe UI")
@@ -360,6 +372,8 @@ StartMacro() {
     SessionStart            := A_TickCount
     CurrentRaidStep         := 0
     HasSummonedThisSession  := false
+    UpdateSearchArea()  ; calculate search region from current Roblox window size
+    SetTimer(CheckForUpdates, -500)  ; check for updates in background on start
     GuiStatus.Text  := "● Running"
     GuiStatus.Opt("c00FF99")
 
@@ -577,7 +591,7 @@ RunDynamicSlots(gmKey) {
                     return
                 if (A_TickCount > deadline)
                     break
-                if FindText(&fx, &fy, StartX, StartY, EndX, EndY, 0, 0, %textVar%) {
+                if GetFindText().FindText(&fx, &fy, StartX, StartY, EndX, EndY, 0, 0, %textVar%) {
                     GuiStatus.Text := "Running: " slot["label"]
                     RunCustomOrDefault(key, (*) => 0)
                     break
@@ -594,34 +608,35 @@ RunDemonSlayer() {
     GuiStatus.Text := "Abandon Village — Entering"
     RunCustomOrDefault("AV_Entry",      (*) => 0)
     RaidStartTime := A_TickCount
-    ; ── Entry check: wait up to 45s for Text2 (2 enemies = stage loaded) ──
-    ; Give extra time for stage to fully load before counting as failed
-    Sleep(3000)  ; initial wait for stage to begin loading
-    entryAttempt  := 0
-    EntryDeadline := A_TickCount + 45000  ; 45s per attempt
+    ; ── Entry check: wait up to 90s for Text2 (2 enemies = stage loaded) ──
+    ; Just keep polling — do NOT re-run entry sequence as it resets position
+    GuiStatus.Text := "Abandon Village — Waiting for enemies..."
+    EntryDeadline := A_TickCount + 90000  ; 90s total wait
     Loop {
         if (!Running)
             return
         if (A_TickCount > EntryDeadline) {
-            entryAttempt += 1
-            if (entryAttempt >= 3) {
-                ; Failed 3 times — skip AV this cycle
-                AVEntryFails += 1
-                GuiStatus.Text := "Abandon Village — Skipped after 3 failed entries"
-                return
+            ; Before giving up — check if difficulty text is visible (confirms in stage)
+            if (CheckDifficultyDetected()) {
+                GuiStatus.Text := "Abandon Village — Difficulty detected, continuing..."
+                break
             }
-            GuiStatus.Text := "Abandon Village — Entry FAILED (attempt " entryAttempt "), retrying..."
-            Sleep(2000)
-            RunCustomOrDefault("AV_Entry", (*) => 0)
-            Sleep(3000)  ; wait for stage to load after retry
-            EntryDeadline := A_TickCount + 45000
+            AVEntryFails += 1
+            GuiStatus.Text := "Abandon Village — Timed out, no stage detected — restarting cycle"
+            return
         }
-        if FindText(&FoundX, &FoundY, StartX, StartY, EndX, EndY, 0.15, 0.15, Text2) {
+        ; Also check difficulty mid-poll as faster confirmation
+        if (CheckDifficultyDetected()) {
+            AVEntryFails := 0
+            GuiStatus.Text := "Abandon Village — Stage confirmed via difficulty"
+            break
+        }
+        if GetFindText().FindText(&FoundX, &FoundY, StartX, StartY, EndX, EndY, 0.15, 0.15, Text2) {
             AVEntryFails  := 0
             GuiStatus.Text := "Abandon Village — Stage confirmed"
             break
         }
-        Sleep(1000)  ; poll every 1s instead of 500ms
+        Sleep(1000)
     }
     ; Text2 already confirmed — run Step1 immediately
     GuiStatus.Text := "Abandon Village — Step 1"
@@ -637,7 +652,7 @@ RunDemonSlayer() {
             ReturnToLobby()
             return
         }
-        if FindText(&FoundX, &FoundY, StartX, StartY, EndX, EndY, 0.15, 0.15, Text0) {
+        if GetFindText().FindText(&FoundX, &FoundY, StartX, StartY, EndX, EndY, 0.15, 0.15, Text0) {
             DemonRuns += 1
             GuiStatus.Text := "● Done  [AV: " . DemonRuns . "]"
             Sleep(5000)
@@ -658,20 +673,29 @@ RunDoubleDungeon() {
         RunCustomOrDefault("DD_EnterRaid",  (*) => 0)
         RaidStartTime   := A_TickCount
         CurrentRaidStep := 0.5
-        Sleep(3000)  ; wait for stage to begin loading
-        ; ── Entry confirmation: wait up to 45s for 12 enemies ───
-        EntryDeadline := A_TickCount + 45000
+        ; ── Entry confirmation: wait up to 90s for 12 enemies ───
+        ; Just keep polling — do NOT re-run entry as it resets position
+        GuiStatus.Text := "Double Dungeon — Waiting for enemies..."
+        EntryDeadline := A_TickCount + 90000
         Loop {
             if (!Running)
                 return
             if (A_TickCount > EntryDeadline) {
-                GuiStatus.Text := "Double Dungeon — Entry FAILED, retrying..."
-                Sleep(2000)
-                RunCustomOrDefault("DD_EnterRaid",  (*) => 0)
-                Sleep(3000)
-                EntryDeadline := A_TickCount + 45000
+                ; Before giving up — check if difficulty text is visible (confirms in stage)
+                if (CheckDifficultyDetected()) {
+                    GuiStatus.Text := "Double Dungeon — Difficulty detected, continuing..."
+                    break
+                }
+                GuiStatus.Text := "Double Dungeon — Timed out, no stage detected — restarting cycle"
+                CurrentRaidStep := 0
+                return
             }
-            if FindText(&FoundX, &FoundY, StartX, StartY, EndX, EndY, 0.15, 0.15, Text12) {
+            ; Also check difficulty mid-poll as faster confirmation
+            if (CheckDifficultyDetected()) {
+                GuiStatus.Text := "Double Dungeon — Stage confirmed via difficulty"
+                break
+            }
+            if GetFindText().FindText(&FoundX, &FoundY, StartX, StartY, EndX, EndY, 0.15, 0.15, Text12) {
                 GuiStatus.Text := "Double Dungeon — Stage confirmed (12 enemies)"
                 break
             }
@@ -681,7 +705,7 @@ RunDoubleDungeon() {
     }
     ; ── Step 0.5: Confirmed inside — run Step 1 ─────────────────
     if (CurrentRaidStep == 0.5) {
-        if FindText(&FoundX, &FoundY, StartX, StartY, EndX, EndY, 0.15, 0.15, Text12) {
+        if GetFindText().FindText(&FoundX, &FoundY, StartX, StartY, EndX, EndY, 0.15, 0.15, Text12) {
             RunCustomOrDefault("DD_Step1",      (*) => 0)
             CurrentRaidStep := 2
             Sleep(2913)   ; Step 1 total: 2563+100+250
@@ -691,47 +715,47 @@ RunDoubleDungeon() {
         return
     }
     ; ── Step 2 → 10: Enemy-count driven progression ─────────────
-    if (CurrentRaidStep == 2 && FindText(&FoundX, &FoundY, StartX, StartY, EndX, EndY, 0.15, 0.15, Text10)) {
+    if (CurrentRaidStep == 2 && GetFindText().FindText(&FoundX, &FoundY, StartX, StartY, EndX, EndY, 0.15, 0.15, Text10)) {
         RunCustomOrDefault("DD_Step2",      (*) => 0)
         CurrentRaidStep := 3
         Sleep(1319)   ; Step 2 total: 875+100+344
     }
-    else if (CurrentRaidStep == 3 && FindText(&FoundX, &FoundY, StartX, StartY, EndX, EndY, 0.15, 0.15, Text8)) {
+    else if (CurrentRaidStep == 3 && GetFindText().FindText(&FoundX, &FoundY, StartX, StartY, EndX, EndY, 0.15, 0.15, Text8)) {
         RunCustomOrDefault("DD_Step3",      (*) => 0)
         CurrentRaidStep := 4
         Sleep(3684)   ; Step 3 total: 2266+100+218+100+1000
     }
-    else if (CurrentRaidStep == 4 && FindText(&FoundX, &FoundY, StartX, StartY, EndX, EndY, 0.15, 0.15, Text6)) {
+    else if (CurrentRaidStep == 4 && GetFindText().FindText(&FoundX, &FoundY, StartX, StartY, EndX, EndY, 0.15, 0.15, Text6)) {
         RunCustomOrDefault("DD_Step4",      (*) => 0)
         CurrentRaidStep := 5
         Sleep(929)    ; Step 4 total: 563+100+266
     }
-    else if (CurrentRaidStep == 5 && FindText(&FoundX, &FoundY, StartX, StartY, EndX, EndY, 0.15, 0.15, Text4)) {
+    else if (CurrentRaidStep == 5 && GetFindText().FindText(&FoundX, &FoundY, StartX, StartY, EndX, EndY, 0.15, 0.15, Text4)) {
         RunCustomOrDefault("DD_Step5",      (*) => 0)
         CurrentRaidStep := 6
         Sleep(3607)   ; Step 5 total: 1500+100+407+100+1500
     }
-    else if (CurrentRaidStep == 6 && FindText(&FoundX, &FoundY, StartX, StartY, EndX, EndY, 0.15, 0.15, Text2)) {
+    else if (CurrentRaidStep == 6 && GetFindText().FindText(&FoundX, &FoundY, StartX, StartY, EndX, EndY, 0.15, 0.15, Text2)) {
         RunCustomOrDefault("DD_Step6",      (*) => 0)
         CurrentRaidStep := 7
         Sleep(1025)   ; Step 6 total: 625+100+300
     }
-    else if (CurrentRaidStep == 7 && FindText(&FoundX, &FoundY, StartX, StartY, EndX, EndY, 0.15, 0.15, Text10)) {
+    else if (CurrentRaidStep == 7 && GetFindText().FindText(&FoundX, &FoundY, StartX, StartY, EndX, EndY, 0.15, 0.15, Text10)) {
         RunCustomOrDefault("DD_Step7",      (*) => 0)
         CurrentRaidStep := 8
         Sleep(16711)  ; Step 7 total: 4016+100+5063+100+2438+100+1172+100+453+100+1500+100+1469
     }
-    else if (CurrentRaidStep == 8 && FindText(&FoundX, &FoundY, StartX, StartY, EndX, EndY, 0.15, 0.15, Text5)) {
+    else if (CurrentRaidStep == 8 && GetFindText().FindText(&FoundX, &FoundY, StartX, StartY, EndX, EndY, 0.15, 0.15, Text5)) {
         RunCustomOrDefault("DD_Step8",      (*) => 0)
         CurrentRaidStep := 9
         Sleep(19511)  ; Step 8 total: 8938+100+3610+100+2328+100+188+100+219+100+1360+100+1640+100+172+100+156
     }
-    else if (CurrentRaidStep == 9 && FindText(&FoundX, &FoundY, StartX, StartY, EndX, EndY, 0.15, 0.15, Text1)) {
+    else if (CurrentRaidStep == 9 && GetFindText().FindText(&FoundX, &FoundY, StartX, StartY, EndX, EndY, 0.15, 0.15, Text1)) {
         RunCustomOrDefault("DD_Step9",      (*) => 0)
         CurrentRaidStep := 10
         Sleep(6716)   ; Step 9 total: 2641+100+3032+100+843
     }
-    else if (CurrentRaidStep == 10 && FindText(&FoundX, &FoundY, StartX, StartY, EndX, EndY, 0.15, 0.15, Text0)) {
+    else if (CurrentRaidStep == 10 && GetFindText().FindText(&FoundX, &FoundY, StartX, StartY, EndX, EndY, 0.15, 0.15, Text0)) {
         RunCustomOrDefault("DD_Step10",     (*) => 0)
         DungeonRuns += 1
         CurrentRaidStep := 0
@@ -843,6 +867,180 @@ ParsePSLink(url) {
     return url
 }
 
+; Scans region 883,51,1037,86 for any difficulty text (Nightmare/Medium/Easy/Hard)
+; Returns true if any detected — confirms player is inside a stage
+CheckDifficultyDetected() {
+    global TextNightmare, TextMedium, TextEasy, TextHard
+    x1 := 883, y1 := 51, x2 := 1037, y2 := 86
+    if GetFindText().FindText(&fx, &fy, x1, y1, x2, y2, 0.15, 0.15, TextNightmare)
+        return true
+    if GetFindText().FindText(&fx, &fy, x1, y1, x2, y2, 0.15, 0.15, TextMedium)
+        return true
+    if GetFindText().FindText(&fx, &fy, x1, y1, x2, y2, 0.15, 0.15, TextEasy)
+        return true
+    if GetFindText().FindText(&fx, &fy, x1, y1, x2, y2, 0.15, 0.15, TextHard)
+        return true
+    return false
+}
+
+UpdateSearchArea() {
+    ; Recalculates the enemy count search region relative to the Roblox window
+    ; Enemy count UI sits in the top-center of the Roblox window
+    global StartX, StartY, EndX, EndY, RobloxTitle
+    if !WinExist(RobloxTitle)
+        return
+    WinGetPos(&wx, &wy, &ww, &wh, RobloxTitle)
+    ; Enemy count is roughly top 10% of window, center 25% horizontally
+    StartX := wx + Round(ww * 0.38)
+    StartY := wy + Round(wh * 0.02)
+    EndX   := wx + Round(ww * 0.62)
+    EndY   := wy + Round(wh * 0.12)
+}
+
+
+; ================================================================
+;   AUTO UPDATER
+; ================================================================
+CheckForUpdates(force := false) {
+    global MacroVersion, RawBase
+
+    GuiStatus.Text := "Checking for updates..."
+
+    ; ── Fetch version.txt from GitHub ──
+    versionUrl := RawBase . "version.txt"
+    tmpVer     := A_ScriptDir . "\~version_check.tmp"
+
+    try {
+        RunWait('curl.exe -s -L -o "' . tmpVer . '" "' . versionUrl . '"', , "Hide")
+    } catch {
+        GuiStatus.Text := "Update check failed — no internet?"
+        return
+    }
+
+    if (!FileExist(tmpVer)) {
+        GuiStatus.Text := "Update check failed — could not reach GitHub"
+        return
+    }
+
+    latestVersion := Trim(FileRead(tmpVer))
+    FileDelete(tmpVer)
+
+    if (latestVersion == "") {
+        GuiStatus.Text := "Update check failed — empty version file"
+        return
+    }
+
+    ; ── Compare versions ──
+    if (latestVersion == MacroVersion && !force) {
+        GuiStatus.Text := "✔ Up to date (V" . MacroVersion . ")"
+        return
+    }
+    if (latestVersion == MacroVersion && force) {
+        GuiStatus.Text := "Force updating V" . MacroVersion . "..."
+    }
+
+    GuiStatus.Text := "Update found: V" . MacroVersion . " → V" . latestVersion . " — downloading..."
+
+    ; ── Fetch file list from files.txt on GitHub ──
+    filesUrl := RawBase . "files.txt"
+    tmpFiles  := A_ScriptDir . "\~files_list.tmp"
+
+    try {
+        RunWait('curl.exe -s -L -o "' . tmpFiles . '" "' . filesUrl . '"', , "Hide")
+    } catch {
+        GuiStatus.Text := "Update failed — could not fetch file list"
+        return
+    }
+
+    fileList := FileRead(tmpFiles)
+    FileDelete(tmpFiles)
+
+    updatedCount := 0
+    failedFiles  := ""
+
+    ; ── Download each file listed ──
+    Loop Parse, fileList, "`n", "`r" {
+        fileName := Trim(A_LoopField)
+        if (fileName == "")
+            continue
+
+        fileUrl    := RawBase . fileName
+        ; Preserve subfolder structure locally
+        localPath  := A_ScriptDir . "\" . StrReplace(fileName, "/", "\")
+        localDir   := RegExReplace(localPath, "\[^\]+$", "")
+
+        if (!DirExist(localDir))
+            DirCreate(localDir)
+
+        tmpDl := localPath . ".tmp"
+
+        try {
+            RunWait('curl.exe -s -L -o "' . tmpDl . '" "' . fileUrl . '"', , "Hide")
+        } catch {
+            failedFiles .= fileName . "`n"
+            continue
+        }
+
+        if (!FileExist(tmpDl) || FileGetSize(tmpDl) == 0) {
+            failedFiles .= fileName . "`n"
+            if FileExist(tmpDl)
+                FileDelete(tmpDl)
+            continue
+        }
+
+        ; Replace existing file with downloaded one
+        if FileExist(localPath)
+            FileDelete(localPath)
+        FileMove(tmpDl, localPath)
+        updatedCount += 1
+    }
+
+    ; ── Self-update: replace main.ahk last and reload ──
+    mainTmp := A_ScriptDir . "\main.ahk.tmp"
+    mainUrl := RawBase . "main.ahk"
+
+    try {
+        RunWait('curl.exe -s -L -o "' . mainTmp . '" "' . mainUrl . '"', , "Hide")
+    } catch {
+        GuiStatus.Text := "⚠ Could not download main.ahk update"
+        return
+    }
+
+    if (!FileExist(mainTmp) || FileGetSize(mainTmp) == 0) {
+        GuiStatus.Text := "⚠ Downloaded main.ahk was empty — keeping current"
+        if FileExist(mainTmp)
+            FileDelete(mainTmp)
+        return
+    }
+
+    ; Back up current script before replacing
+    bakPath := A_ScriptDir . "\main_backup_V" . MacroVersion . ".ahk"
+    FileCopy(A_ScriptFullPath, bakPath, 1)
+
+    ; Schedule replace + reload via a small helper bat (can't replace running script directly)
+    batPath := A_ScriptDir . "\~updater.bat"
+    batContent := "@echo off`r`n"
+                . "timeout /t 2 /nobreak >nul`r`n"
+                . "move /y `"" . mainTmp . "`" `"" . A_ScriptFullPath . "`"`r`n"
+                . "start `"`" `"" . A_ScriptFullPath . "`"`r`n"
+                . "del `"%~f0`"`r`n"
+    FileOpen(batPath, "w").Write(batContent)
+
+    if (failedFiles != "")
+        MsgBox("Update V" . latestVersion . " ready!`n`nSome files failed to download:`n" . failedFiles . "`nMacro will restart now.", "Auto Updater", 48)
+    else
+        MsgBox("Update V" . latestVersion . " downloaded successfully!`n" . updatedCount . " file(s) updated.`nMacro will restart now.", "Auto Updater", 64)
+
+    Run(batPath)
+    ExitApp()
+}
+
+; ARX-style FindText singleton — reuses same object for better performance
+GetFindText() {
+    static obj := FindText()
+    return obj
+}
+
 RobloxRunning() {
     return ProcessExist("RobloxPlayerBeta.exe") || ProcessExist("RobloxPlayer.exe") || ProcessExist("Roblox.exe")
 }
@@ -906,7 +1104,7 @@ PlaySequence(steps) {
                 ; Use FindText to detect enemy count
                 textVar := "Text" targetCount
                 try {
-                    if FindText(&fx, &fy, StartX, StartY, EndX, EndY, 0, 0, %textVar%) {
+                    if GetFindText().FindText(&fx, &fy, StartX, StartY, EndX, EndY, 0, 0, %textVar%) {
                         Sleep(200)
                         break
                     }
@@ -1081,7 +1279,7 @@ TestJoinPS() {
 ToggleSettings(*) {
     global SettingsVisible
     SettingsVisible := !SettingsVisible
-    for ctrl in [TextWeb, EditWeb, TextPS, EditPS, TextCol, EditCol, BtnSave, BtnTestSS, BtnDebug, BtnTestJoin, BtnTestWebhook, BtnLoadSeqFile, LblSeqFile, LblMovFiles, BtnReloadCustom, BtnReloadRaids, BtnReloadSummon, LblSummonSec, DdlSummonMap, ChkSummonActive] {
+    for ctrl in [TextWeb, EditWeb, TextPS, EditPS, TextCol, EditCol, BtnSave, BtnUpdate, BtnForceUpdate, BtnTestSS, BtnDebug, BtnTestJoin, BtnTestWebhook, BtnLoadSeqFile, LblSeqFile, LblMovFiles, BtnReloadCustom, BtnReloadRaids, BtnReloadSummon, LblSummonSec, DdlSummonMap, ChkSummonActive] {
         ctrl.Visible := SettingsVisible
     }
     MyGui.Show(SettingsVisible ? "h960" : "h474")
@@ -1208,7 +1406,7 @@ CaptureAndSend(IsManualTest := false) {
     Duration := h . "h " . m . "m " . s . "s"
     global RiftRuns, RaidRuns, RaidType, CustomRuns, CustomRunName
     currStatus := MacroPaused ? "⏸ Paused" : "● Running"
-    Payload := '{"embeds": [{"title": "DenniXD ATS Macro V2.3","color": 8323327,'
+    Payload := '{"embeds": [{"title": "DenniXD ATS Macro V2.3.3","color": 8323327,'
              . '"image": {"url": "attachment://ss.png"},'
              . '"fields": ['
              . '{"name": "🗡 Abandon Village",  "value": "' . DemonRuns   . ' runs", "inline": true},'
@@ -1219,7 +1417,7 @@ CaptureAndSend(IsManualTest := false) {
              . '{"name": "🔄 Rejoined",        "value": "' . RejoinCount . ' times", "inline": true},'
              . '{"name": "⏱ Uptime",          "value": "' . Duration    . '", "inline": true},'
              . '{"name": "📊 Status",          "value": "' . currStatus  . '", "inline": true}'
-             . '],"footer": {"text": "DenniXD ATS V2.3  ·  ' . FormatTime(, "HH:mm:ss") . '"}}]}'
+             . '],"footer": {"text": "DenniXD ATS V2.3.3  ·  ' . FormatTime(, "HH:mm:ss") . '"}}]}'
     try {
         FileOpen(JsonPath, "w", "UTF-8").Write(Payload)
         RunWait('curl.exe -s -F "payload_json=<' JsonPath '" -F "file=@' SSPath '" "' EditWeb.Value '"', , "Hide")
@@ -1292,7 +1490,7 @@ GenerateDefaultFiles() {
     global FolderCustom, FolderRaids, FolderSummon
 
     hdr := "; ================================================================`n"
-          . "; DenniXD ATS Macro V2.3 — Movement File (auto-generated)`n"
+          . "; DenniXD ATS Macro V2.3.3 — Movement File (auto-generated)`n"
           . "; Edit steps freely. Reload via Settings > Movement Files.`n"
           . "; Format:  SlotKey|key|keyname|ms  /  |click|x|y|ms  /  |sleep|ms`n"
           . "; ================================================================`n`n"
@@ -1736,10 +1934,46 @@ RejoinPS() {
         }
         Sleep(2000)
 
-        ; 2. Run PS link directly — Roblox installed = no browser needed
-        ;    (same method as ARX macro — Run(psLink) directly)
+        ; 2. Always re-read PS link fresh from INI so changes take effect immediately
+        PrivateServer := IniRead(IniFile, "Settings", "PSLink", "")
+        if (EditPS.Value != PrivateServer)
+            EditPS.Value := PrivateServer  ; sync UI field too
+
         GuiStatus.Text := "Launching private server..."
-        Run(PrivateServer)
+        if (PrivateServer == "") {
+            GuiStatus.Text := "⚠ No PS link set — please add one in Settings"
+            MacroLock := false
+            SetTimer(MainLoop, 150)
+            return
+        }
+
+        ; Try direct roblox:// protocol launch first (fastest, no browser needed)
+        launched := false
+        try {
+            Run(PrivateServer)
+            launched := true
+        } catch {
+            launched := false
+        }
+
+        ; Fallback: open via browser if direct launch failed
+        if (!launched) {
+            GuiStatus.Text := "Direct launch failed — trying via browser..."
+            try {
+                Run("https://www.roblox.com/games/start?placeId=&linkCode=" . ParsePSLink(PrivateServer))
+            } catch {
+                ; Last resort: just try Run again after a short wait
+                Sleep(2000)
+                try {
+                    Run(PrivateServer)
+                } catch as e {
+                    GuiStatus.Text := "⚠ Failed to launch PS link: " e.Message
+                    MacroLock := false
+                    SetTimer(MainLoop, 150)
+                    return
+                }
+            }
+        }
         LastRejoinTime := A_TickCount
         Sleep(5000)
 
@@ -1751,7 +1985,13 @@ RejoinPS() {
                 return
             if (A_TickCount > reconnectDeadline) {
                 GuiStatus.Text := "Rejoin timed out — retrying launch..."
-                Run(PrivateServer)
+                PrivateServer := IniRead(IniFile, "Settings", "PSLink", PrivateServer)
+                try {
+                    Run(PrivateServer)
+                } catch {
+                    Sleep(2000)
+                    Run(PrivateServer)
+                }
                 reconnectDeadline := A_TickCount + 120000
             }
             ; Dismiss any popup dialogs (e.g. "Open Roblox?" browser prompt)
@@ -1794,7 +2034,7 @@ RejoinPS() {
                 break
             }
             try {
-                if FindText(&fx, &fy, 27, 577, 127, 627, 0, 0, TextLoaded) {
+                if GetFindText().FindText(&fx, &fy, 27, 577, 127, 627, 0, 0, TextLoaded) {
                     gameLoaded := true
                     GuiStatus.Text := "Game loaded — waiting 5s..."
                     break
@@ -1808,6 +2048,7 @@ RejoinPS() {
             if (WinExist(RobloxTitle)) {
                 WinActivate(RobloxTitle)
                 WinWaitActive(RobloxTitle, , 5)
+                UpdateSearchArea()  ; recalculate for potentially new window size
                 GuiStatus.Text := "Running ResetTravelUI..."
                 Execute_ResetTravelUI()
                 Sleep(1000)
@@ -1925,7 +2166,7 @@ OpenSequenceEditor() {
     EditorGamemode := "DD"
     EditorSlotKey  := "DD_EnterRaid"
 
-    EditorGui := Gui("+AlwaysOnTop -MaximizeBox", "Gamemode Editor — DenniXD ATS V2.3")
+    EditorGui := Gui("+AlwaysOnTop -MaximizeBox", "Gamemode Editor — DenniXD ATS V2.3.3")
     EditorGui.BackColor := "111111"
     EditorGui.OnEvent("Close", (*) => CloseSequenceEditor())
 
@@ -2270,8 +2511,8 @@ F9:: {
 ~*LButton:: EditorCaptureMouse()
 
 EditorCaptureKey(keyName) {
-    global EditorRecording, EditorSteps
-    if (!EditorRecording)
+    global EditorRecording, EditorSteps, EditorOpen
+    if (!IsSet(EditorRecording) || !EditorRecording || !EditorOpen)
         return
     t := A_TickCount
     KeyWait(keyName)
@@ -2284,10 +2525,10 @@ EditorCaptureKey(keyName) {
 
 EditorCaptureMouse() {
     global EditorRecording, EditorOpen
-    if (!EditorRecording || !EditorOpen)
+    if (!IsSet(EditorRecording) || !EditorRecording || !EditorOpen)
         return
     MouseGetPos(&mx, &my, &mWin)
-    edWin := WinExist("Gamemode Editor — DenniXD ATS V2.3")
+    edWin := WinExist("Gamemode Editor — DenniXD ATS V2.3.3")
     if (edWin && mWin == edWin)
         return
     EditorSteps.Push(Map("type","click","x",mx,"y",my,"dur",80))
@@ -2516,7 +2757,7 @@ SaveEditorSequence() {
 ; Writes multiple slot keys into one file (preserves all slots)
 SaveMovementFileSlots(path, keys) {
     global CustomSeqs, SlotTriggers
-    out := "; DenniXD ATS V2.3 — saved from editor`n`n"
+    out := "; DenniXD ATS V2.3.3 — saved from editor`n`n"
     for slotKey in keys {
         if (!CustomSeqs.Has(slotKey))
             continue
