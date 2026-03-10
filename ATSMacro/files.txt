@@ -1,11 +1,1 @@
-FindText.ahk
-Raids/NamexPlanet.txt
-Raids/ColosseumKingdom.txt
-Raids/DemonForest.txt
-Raids/DungeonTown.txt
-Raids/ReaperSociety.txt
-Custom/DoubleDungeon.txt
-Custom/AbandonVillage.txt
-Custom/Rift.txt
-Summon/DungeonTown.txt
-Summon/ReaperSociety.txt
+
