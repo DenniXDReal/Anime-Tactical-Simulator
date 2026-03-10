@@ -15,7 +15,7 @@ SetTimer(CheckForUpdates, -1500)
 SetDefaultMouseSpeed(0)
 CoordMode("Mouse", "Screen")
 ; ================================================================
-;   DenniXD ATS MACRO V2.4.0 — Combined Double Dungeon + Abandon Village
+;   DenniXD ATS MACRO v2.4.1 — Combined Double Dungeon + Abandon Village
 ; ================================================================
 ; ---------------- INITIALIZE FILES ----------------
 InitFiles() {
@@ -23,11 +23,11 @@ InitFiles() {
     seqPath := A_ScriptDir "\Sequences.txt"
     ; Create Settings.ini with defaults if missing
     if (!FileExist(iniPath)) {
-        FileAppend("[Settings]`nWebhook=`nPSLink=`nUIColor=1A1A1A`nUserSpeed=33`nCreatorSpeed=33`n", iniPath, "UTF-8")
+        FileAppend("[Settings]`nWebhook=`nPSLink=`nUIColor=1A1A1A`nUserSpeed=32`nCreatorSpeed=32`n", iniPath, "UTF-8")
     }
     ; Create empty Sequences.txt if missing
     if (!FileExist(seqPath)) {
-        FileAppend("; DenniXD ATS Macro V2.4.0 - Sequences`n; Auto-generated on first run`n", seqPath, "UTF-8")
+        FileAppend("; DenniXD ATS Macro v2.4.1 - Sequences`n; Auto-generated on first run`n", seqPath, "UTF-8")
     }
 }
 InitFiles()
@@ -36,20 +36,21 @@ InitFiles()
 global IniFile        := A_ScriptDir "\Settings.ini"
 global DiscordWebhook := IniRead(IniFile, "Settings", "Webhook", "")
 global MacroVersion      := "2.4.0"
-global CreatorSpeed      := 33      ; macro creator's in-game speed (do not change)
-global UserSpeed         := 33      ; user's in-game speed (set in Settings)
+global CreatorSpeed      := 32      ; macro creator's in-game speed (do not change)
+global UserSpeed         := 32      ; user's in-game speed (set in Settings)
 global SpeedScale        := 1.0     ; calculated as CreatorSpeed / UserSpeed
 global UpdateAttempted   := false  ; prevents re-checking every cycle
 global RepoOwner      := "DenniXDReal"
 global RepoName       := "Anime-Tactical-Simulator"
 global RawBase        := "https://raw.githubusercontent.com/" . RepoOwner . "/" . RepoName . "/main/ATSMacro/"
 global PrivateServer  := IniRead(IniFile, "Settings", "PSLink",  "")
-global UserSpeed      := Integer(IniRead(IniFile, "Settings", "UserSpeed", "33"))
-global CreatorSpeed   := Integer(IniRead(IniFile, "Settings", "CreatorSpeed", "33"))
+global UserSpeed      := Integer(IniRead(IniFile, "Settings", "UserSpeed", "32"))
+global CreatorSpeed   := Integer(IniRead(IniFile, "Settings", "CreatorSpeed", "32"))
 global CustomColor    := IniRead(IniFile, "Settings", "UIColor", "1A1A1A")
 global Running         := false
 global DemonRuns       := 0
-global DungeonRuns     := 0
+global DungeonRuns          := 0
+global DDRunsSinceReset     := 0  ; resets TravelUI every 3 DD completions
 global RejoinCount     := 0
 global SessionStart    := A_TickCount
 global RaidStartTime   := 0
@@ -188,7 +189,7 @@ global Text0  := "|<>D83A37-323232$71.00000000000000000000000000000T00000000003z
 ; ================================================================
 ;   GUI SETUP  —  Modern dark card layout
 ; ================================================================
-MyGui := Gui("+AlwaysOnTop -Caption +Border", "DenniXD ATS Macro V2.4.0")
+MyGui := Gui("+AlwaysOnTop -Caption +Border", "DenniXD ATS Macro v2.4.1")
 MyGui.BackColor := "0D0D0D"
 OnMessage(0x0201, WM_LBUTTONDOWN)
 WM_LBUTTONDOWN(wParam, lParam, msg, hwnd) {
@@ -206,7 +207,7 @@ MyGui.AddText("x0 y0 w430 h3 Background7B2FFF", "")   ; purple accent strip
 MyGui.SetFont("s13 cFFFFFF Bold", "Segoe UI")
 MyGui.AddText("x16 y14 w300", "DenniXD ATS MACRO")
 MyGui.SetFont("s8 c555555 Norm", "Segoe UI")
-MyGui.AddText("x16 y32 w300", "V2.4.0  ·  Double Dungeon + Abandon Village")
+MyGui.AddText("x16 y32 w300", "v2.4.1  ·  Double Dungeon + Abandon Village")
 
 ; Close [ X ]
 MyGui.SetFont("s10 cFF4455 Bold", "Segoe UI")
@@ -772,7 +773,7 @@ RunDemonSlayer() {
 }
 RunDoubleDungeon() {
     ; CurrentRaidStep: 0 = not started, 1 = entered (waiting), 2+ = slot index into GM_DD
-    global Running, CurrentRaidStep, DungeonRuns, RaidStartTime
+    global Running, CurrentRaidStep, DungeonRuns, DDRunsSinceReset, RaidStartTime
     global SlotTriggers, GM_DD, CustomSeqs, StartX, StartY, EndX, EndY
     if (!Running)
         return
@@ -790,9 +791,15 @@ RunDoubleDungeon() {
         if (slots.Length < 2) {
             ; Only entry slot exists — run complete
             DungeonRuns += 1
+            DDRunsSinceReset += 1
             GuiStatus.Text := "● Done  [DD: " . DungeonRuns . "]"
             Sleep(5000)
             CaptureAndSend(false)
+            if (DDRunsSinceReset >= 3) {
+                DDRunsSinceReset := 0
+                GuiStatus.Text := "DD — 3 runs done, resetting TravelUI..."
+                Execute_ResetTravelUI()
+            }
             ReturnToLobby()
             CurrentRaidStep := 0
             return
@@ -867,25 +874,46 @@ RunDoubleDungeon() {
         trigger := SlotTriggers.Has(key) ? SlotTriggers[key] : slot["trigger"]
         textVar := DDResolveTextVar(trigger)
 
-        ; Wait for trigger
+        ; Always update status immediately so display never shows stale message
+        GuiStatus.Text := "Double Dungeon — " slot["label"] " — waiting for " trigger "..."
+
+        ; Wait for trigger only if we have a valid non-empty pattern
         if (textVar != "") {
-            ; Check if the text pattern variable is actually defined
+            ; Verify the pattern variable is actually populated (e.g. Text3 may be empty placeholder)
             patternExists := false
             try {
                 val := %textVar%
                 patternExists := (val != "")
             }
             if (!patternExists) {
-                GuiStatus.Text := "Double Dungeon — WARNING: no pattern for '" trigger "' — skipping wait"
-                Sleep(1000)
+                GuiStatus.Text := "Double Dungeon — " slot["label"] " — no pattern for '" trigger "', skipping wait"
+                Sleep(500)
             } else {
-                GuiStatus.Text := "Double Dungeon — " slot["label"] " — waiting for " trigger "..."
-                stepDeadline := A_TickCount + 90000
+                ; Phase 1: wait for trigger count to DISAPPEAR first (enemy killed, count changed)
+                ; This prevents instantly firing when the same count is still on screen from prev step
+                clearDeadline := A_TickCount + 5000
+                Loop {
+                    if (!Running)
+                        return
+                    if (A_TickCount > clearDeadline)
+                        break  ; gave up waiting for it to clear — proceed to trigger wait
+                    stillVisible := false
+                    try {
+                        if GetFindText().FindText(&FoundX, &FoundY, StartX, StartY, EndX, EndY, 0.15, 0.15, %textVar%)
+                            stillVisible := true
+                    }
+                    if (!stillVisible)
+                        break  ; count gone — now watch for it to return
+                    Sleep(200)
+                }
+
+                ; Phase 2: wait up to 30s for trigger count to appear
+                stepDeadline := A_TickCount + 30000
                 Loop {
                     if (!Running)
                         return
                     if (A_TickCount > stepDeadline) {
-                        GuiStatus.Text := "Double Dungeon — Timeout on " slot["label"] ", skipping"
+                        GuiStatus.Text := "Double Dungeon — " slot["label"] " — 30s passed, running anyway"
                         break
                     }
                     try {
@@ -923,10 +951,16 @@ RunDoubleDungeon() {
 
     ; All slots done — run complete
     DungeonRuns += 1
+    DDRunsSinceReset += 1
     CurrentRaidStep := 0
     GuiStatus.Text := "● Done  [DD: " . DungeonRuns . "]"
     Sleep(5000)
     CaptureAndSend(false)
+    if (DDRunsSinceReset >= 3) {
+        DDRunsSinceReset := 0
+        GuiStatus.Text := "DD — 3 runs done, resetting TravelUI..."
+        Execute_ResetTravelUI()
+    }
     ReturnToLobby()
 }
 
@@ -1342,12 +1376,14 @@ RunCustomOrDefault(seqName, defaultFn) {
 
 ; Returns total duration of a sequence in ms
 CalcSeqDuration(steps) {
+    global SpeedScale
     total := 0
     for step in steps {
         if (step.Has("dur"))
             total += step["dur"]
     }
-    return total
+    ; Apply speed scaling so post-step pauses match actual playback time
+    return Round(total * SpeedScale)
 }
 
 ; Plays a sequence array [{type,key,dur,x,y}, ...]
@@ -1454,33 +1490,59 @@ Execute_ReturnToLobby() {
 }
 
 Execute_ResetTravelUI() {
+    global RobloxTitle
     if WinExist(RobloxTitle) {
         WinActivate(RobloxTitle)
         WinWaitActive(RobloxTitle, , 3)
     }
-    SafeClick(1296, 572), Sleep(100), SafeClick(1296, 572), Sleep(5000)
-    Send("{\ down}"),  Sleep(94),  Send("{\ up}")
-    Send("{f down}"),  Sleep(110), Send("{f up}")
-    Send("{s down}"),  Sleep(94),  Send("{s up}")
-    Send("{d down}"),  Sleep(78),  Send("{d up}")
-    Send("{s down}"),  Sleep(78),  Send("{s up}")
-    Send("{s down}"),  Sleep(78),  Send("{s up}")
-    Send("{s down}"),  Sleep(78),  Send("{s up}")
-    Send("{s down}"),  Sleep(94),  Send("{s up}")
-    Send("{s down}"),  Sleep(93),  Send("{s up}")
-    Send("{s down}"),  Sleep(93),  Send("{s up}")
-    Send("{s down}"),  Sleep(109), Send("{s up}")
-    Send("{s down}"),  Sleep(109), Send("{s up}")
-    Send("{s down}"),  Sleep(93),  Send("{s up}")
-    Send("{s down}"),  Sleep(94),  Send("{s up}")
-    Send("{\ down}"),  Sleep(110), Send("{\ up}")
-    Send("{f down}"),  Sleep(110), Send("{f up}")
     BlockInput("On")
-    SafeClick(1296, 572)
-    Sleep(80)
-    SafeClick(1296, 572)
+    SafeClick(810, 327), Sleep(50)
+    Send("{f down}"),    Sleep(110), Send("{f up}"),  Sleep(50)
+    Send("{\ down}"),   Sleep(109), Send("{\ up}"), Sleep(50)
+    Send("{s down}"),    Sleep(94),  Send("{s up}"),  Sleep(50)
+    Send("{d down}"),    Sleep(78),  Send("{d up}"),  Sleep(50)
+    Send("{s down}"),    Sleep(78),  Send("{s up}"),  Sleep(50)
+    Send("{s down}"),    Sleep(78),  Send("{s up}"),  Sleep(50)
+    Send("{s down}"),    Sleep(125), Send("{s up}"),  Sleep(50)
+    Send("{s down}"),    Sleep(141), Send("{s up}"),  Sleep(50)
+    Send("{s down}"),    Sleep(110), Send("{s up}"),  Sleep(50)
+    Send("{w down}"),    Sleep(78),  Send("{w up}"),  Sleep(50)
+    Send("{w down}"),    Sleep(110), Send("{w up}"),  Sleep(50)
+    Send("{w down}"),    Sleep(125), Send("{w up}"),  Sleep(50)
+    Send("{w down}"),    Sleep(125), Send("{w up}"),  Sleep(50)
+    Send("{w down}"),    Sleep(110), Send("{w up}"),  Sleep(50)
+    Send("{w down}"),    Sleep(110), Send("{w up}"),  Sleep(50)
+    Send("{w down}"),    Sleep(109), Send("{w up}"),  Sleep(50)
+    Send("{w down}"),    Sleep(78),  Send("{w up}"),  Sleep(50)
+    Send("{w down}"),    Sleep(109), Send("{w up}"),  Sleep(50)
+    Send("{\ down}"),   Sleep(156), Send("{\ up}"), Sleep(50)
+    Send("{\ down}"),   Sleep(109), Send("{\ up}"), Sleep(50)
+    Send("{s down}"),    Sleep(94),  Send("{s up}"),  Sleep(50)
+    Send("{d down}"),    Sleep(78),  Send("{d up}"),  Sleep(50)
+    Send("{s down}"),    Sleep(110), Send("{s up}"),  Sleep(50)
+    Send("{s down}"),    Sleep(125), Send("{s up}"),  Sleep(50)
+    Send("{s down}"),    Sleep(109), Send("{s up}"),  Sleep(50)
+    Send("{s down}"),    Sleep(109), Send("{s up}"),  Sleep(50)
+    Send("{s down}"),    Sleep(94),  Send("{s up}"),  Sleep(50)
+    Send("{s down}"),    Sleep(93),  Send("{s up}"),  Sleep(50)
+    Send("{s down}"),    Sleep(125), Send("{s up}"),  Sleep(50)
+    Send("{s down}"),    Sleep(110), Send("{s up}"),  Sleep(50)
+    Send("{s down}"),    Sleep(109), Send("{s up}"),  Sleep(50)
+    Send("{s down}"),    Sleep(125), Send("{s up}"),  Sleep(50)
+    Send("{s down}"),    Sleep(78),  Send("{s up}"),  Sleep(50)
+    Send("{w down}"),    Sleep(94),  Send("{w up}"),  Sleep(50)
+    Send("{w down}"),    Sleep(94),  Send("{w up}"),  Sleep(50)
+    Send("{w down}"),    Sleep(109), Send("{w up}"),  Sleep(50)
+    Send("{w down}"),    Sleep(78),  Send("{w up}"),  Sleep(50)
+    Send("{w down}"),    Sleep(78),  Send("{w up}"),  Sleep(50)
+    Send("{s down}"),    Sleep(94),  Send("{s up}"),  Sleep(50)
+    Send("{s down}"),    Sleep(93),  Send("{s up}"),  Sleep(50)
+    Send("{s down}"),    Sleep(78),  Send("{s up}"),  Sleep(50)
+    Send("{s down}"),    Sleep(94),  Send("{s up}"),  Sleep(50)
+    Send("{\ down}"),   Sleep(156), Send("{\ up}"), Sleep(50)
+    Send("{f down}"),    Sleep(94),  Send("{f up}")
     BlockInput("Off")
-    Sleep(3000)
+    Sleep(1000)
 }
 
 ReturnToLobby() {
@@ -1606,8 +1668,8 @@ SaveSettings(*) {
     global DiscordWebhook, PrivateServer, CustomColor
     DiscordWebhook  := EditWeb.Value
     PrivateServer   := EditPS.Value
-    CreatorSpeed       := Integer(EditCreatorSpeed.Value) > 0 ? Integer(EditCreatorSpeed.Value) : 33
-    UserSpeed          := Integer(EditSpeed.Value) > 0 ? Integer(EditSpeed.Value) : 33
+    CreatorSpeed       := Integer(EditCreatorSpeed.Value) > 0 ? Integer(EditCreatorSpeed.Value) : 32
+    UserSpeed          := Integer(EditSpeed.Value) > 0 ? Integer(EditSpeed.Value) : 32
     EditCreatorSpeed.Value := CreatorSpeed
     EditSpeed.Value        := UserSpeed
     UpdateSpeedScale()
@@ -1626,6 +1688,7 @@ ResetStats(*) {
     if (MsgBox("Reset all stats?", "Confirm", "YesNo") == "Yes") {
         DemonRuns       := 0
         DungeonRuns     := 0
+        DDRunsSinceReset    := 0
         RejoinCount     := 0
         CurrentRaidStep := 0
         SessionStart    := A_TickCount
@@ -1677,7 +1740,7 @@ CaptureAndSend(IsManualTest := false) {
     Duration := h . "h " . m . "m " . s . "s"
     global RiftRuns, RaidRuns, RaidType, CustomRuns, CustomRunName
     currStatus := MacroPaused ? "⏸ Paused" : "● Running"
-    Payload := '{"embeds": [{"title": "DenniXD ATS Macro V2.4.0","color": 8323327,'
+    Payload := '{"embeds": [{"title": "DenniXD ATS Macro v2.4.1","color": 8323327,'
              . '"image": {"url": "attachment://ss.png"},'
              . '"fields": ['
              . '{"name": "🗡 Abandon Village",  "value": "' . DemonRuns   . ' runs", "inline": true},'
@@ -1688,7 +1751,7 @@ CaptureAndSend(IsManualTest := false) {
              . '{"name": "🔄 Rejoined",        "value": "' . RejoinCount . ' times", "inline": true},'
              . '{"name": "⏱ Uptime",          "value": "' . Duration    . '", "inline": true},'
              . '{"name": "📊 Status",          "value": "' . currStatus  . '", "inline": true}'
-             . '],"footer": {"text": "DenniXD ATS V2.4.0  ·  ' . FormatTime(, "HH:mm:ss") . '"}}]}'
+             . '],"footer": {"text": "DenniXD ATS v2.4.1  ·  ' . FormatTime(, "HH:mm:ss") . '"}}]}'
     try {
         FileOpen(JsonPath, "w", "UTF-8").Write(Payload)
         RunWait('curl.exe -s -F "payload_json=<' JsonPath '" -F "file=@' SSPath '" "' EditWeb.Value '"', , "Hide")
@@ -1761,7 +1824,7 @@ GenerateDefaultFiles() {
     global FolderCustom, FolderRaids, FolderSummon
 
     hdr := "; ================================================================`n"
-          . "; DenniXD ATS Macro V2.4.0 — Movement File (auto-generated)`n"
+          . "; DenniXD ATS Macro v2.4.1 — Movement File (auto-generated)`n"
           . "; Edit steps freely. Reload via Settings > Movement Files.`n"
           . "; Format:  SlotKey|key|keyname|ms  /  |click|x|y|ms  /  |sleep|ms`n"
           . "; ================================================================`n`n"
@@ -2361,9 +2424,17 @@ RejoinPS() {
                 GuiStatus.Text := "Roblox detected — closing browser..."
                 for browserExe in ["ahk_exe chrome.exe", "ahk_exe firefox.exe", "ahk_exe msedge.exe", "ahk_exe opera.exe", "ahk_exe brave.exe"] {
                     if WinExist(browserExe) {
-                        WinClose(browserExe)
+                        ; Step 1: Close just the active tab (Ctrl+W)
+                        WinActivate(browserExe)
+                        WinWaitActive(browserExe, , 2)
+                        Send("^w")
                         Sleep(600)
-                        ; Force kill if still open (e.g. "close tabs?" prompt)
+                        ; Step 2: Close the whole browser window
+                        if WinExist(browserExe) {
+                            WinClose(browserExe)
+                            Sleep(600)
+                        }
+                        ; Step 3: Force kill if still open (e.g. "close tabs?" prompt)
                         if WinExist(browserExe) {
                             WinActivate(browserExe)
                             WinWaitActive(browserExe, , 2)
@@ -2484,7 +2555,7 @@ OpenSequenceEditor() {
     EditorGamemode := "DD"
     EditorSlotKey  := "DD_EnterRaid"
 
-    EditorGui := Gui("+AlwaysOnTop -MaximizeBox", "Gamemode Editor — DenniXD ATS V2.4.0")
+    EditorGui := Gui("+AlwaysOnTop -MaximizeBox", "Gamemode Editor — DenniXD ATS v2.4.1")
     EditorGui.BackColor := "111111"
     EditorGui.OnEvent("Close", (*) => CloseSequenceEditor())
 
@@ -2856,7 +2927,7 @@ EditorCaptureMouse() {
     if (!IsSet(EditorRecording) || !EditorRecording || !EditorOpen)
         return
     MouseGetPos(&mx, &my, &mWin)
-    edWin := WinExist("Gamemode Editor — DenniXD ATS V2.4.0")
+    edWin := WinExist("Gamemode Editor — DenniXD ATS v2.4.1")
     if (edWin && mWin == edWin)
         return
     EditorSteps.Push(Map("type","click","x",mx,"y",my,"dur",80))
@@ -3106,7 +3177,7 @@ SaveEditorSequence() {
 ; Writes multiple slot keys into one file (preserves all slots)
 SaveMovementFileSlots(path, keys) {
     global CustomSeqs, SlotTriggers
-    out := "; DenniXD ATS V2.4.0 — saved from editor`n`n"
+    out := "; DenniXD ATS v2.4.1 — saved from editor`n`n"
     for slotKey in keys {
         if (!CustomSeqs.Has(slotKey))
             continue
