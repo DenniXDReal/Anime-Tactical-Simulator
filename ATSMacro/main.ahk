@@ -3,6 +3,15 @@
 #Include FindText.ahk
 ; Force event-level input so Roblox receives all clicks and keypresses
 SendMode("Event")
+
+; Clean up any leftover tmp files from a previously failed update
+if FileExist(A_ScriptDir "\main.ahk.tmp")
+    FileDelete(A_ScriptDir "\main.ahk.tmp")
+if FileExist(A_ScriptDir "\~updater.bat")
+    FileDelete(A_ScriptDir "\~updater.bat")
+
+; Check for updates on launch — macro not running yet so safe to update
+SetTimer(CheckForUpdates, -1500)
 SetDefaultMouseSpeed(0)
 CoordMode("Mouse", "Screen")
 ; ================================================================
@@ -26,7 +35,8 @@ InitFiles()
 ; ---------------- INITIALIZE SETTINGS ----------------
 global IniFile        := A_ScriptDir "\Settings.ini"
 global DiscordWebhook := IniRead(IniFile, "Settings", "Webhook", "")
-global MacroVersion   := "2.3.5"
+global MacroVersion      := "2.3.5"
+global UpdateAttempted   := false  ; prevents re-checking every cycle
 global RepoOwner      := "DenniXDReal"
 global RepoName       := "Anime-Tactical-Simulator"
 global RawBase        := "https://raw.githubusercontent.com/" . RepoOwner . "/" . RepoName . "/main/ATSMacro/"
@@ -336,8 +346,8 @@ global BtnSave   := MyGui.AddButton("x16 yp+36 w168 h30 Background7B2FFF Hidden"
 global BtnUpdate      := MyGui.AddButton("xp+176 yp w172 h30 Background2A2A2A Hidden", "🔄 Check Updates")
 global BtnForceUpdate := MyGui.AddButton("x16 yp+36 w348 h24 Background3A1A1A Hidden", "⚠ Force Update (re-download everything)")
 BtnSave.OnEvent("Click", SaveSettings)
-BtnUpdate.OnEvent("Click", (*) => CheckForUpdates())
-BtnForceUpdate.OnEvent("Click", (*) => CheckForUpdates(true))
+BtnUpdate.OnEvent("Click", (*) => (Running ? MsgBox("Stop the macro before checking for updates.", "Update", 48) : CheckForUpdates()))
+BtnForceUpdate.OnEvent("Click", (*) => (Running ? MsgBox("Stop the macro before force updating.", "Update", 48) : CheckForUpdates(true)))
 
 ; ── Summon Map Section (in settings) ─────────────────────────────
 MyGui.SetFont("s8 c7B2FFF Bold", "Segoe UI")
@@ -375,7 +385,6 @@ StartMacro() {
     CurrentRaidStep         := 0
     HasSummonedThisSession  := false
     UpdateSearchArea()  ; calculate search region from current Roblox window size
-    SetTimer(CheckForUpdates, -500)  ; check for updates in background on start
     GuiStatus.Text  := "● Running"
     GuiStatus.Opt("c00FF99")
 
@@ -405,6 +414,9 @@ StopMacro() {
     SetTimer(LiveTimerTick, 0)
     SetTimer(CrashWatchdog, 0)
     GuiLiveTimer.Text := "—"
+    ; Check for updates when macro stops — safe since nothing is running
+    UpdateAttempted := false  ; reset so it checks again on stop
+    SetTimer(CheckForUpdates, -1000)
 }
 TogglePause() {
     global MacroPaused, Running, GuiStatus
@@ -854,9 +866,21 @@ RunRaid() {
 ;   https://www.roblox.com/games/PLACEID/name?privateServerLinkCode=CODE
 ;   https://www.roblox.com/share?code=CODE&type=Server
 ParsePSLink(url) {
-    ; Just return the original URL as-is
-    ; Run() passes it to Windows which hands it to the Roblox launcher
-    ; This works for roblox://, ro.blox.com, and roblox.com/games links
+    ; Convert roblox.com/share?code=XXX&type=Server
+    ; → roblox://navigation/share_links?code=XXX&type=Server
+    ; This is the official Roblox deep link format that bypasses the browser entirely
+    if (InStr(url, "roblox.com/share")) {
+        RegExMatch(url, "code=([a-f0-9]+)", &mCode)
+        RegExMatch(url, "type=(\w+)", &mType)
+        if (mCode) {
+            linkType := mType ? mType[1] : "Server"
+            return "roblox://navigation/share_links?code=" . mCode[1] . "&type=" . linkType
+        }
+    }
+
+    ; roblox.com/games/PLACEID?privateServerLinkCode=XXX — return as-is, works fine
+    ; roblox:// links — return as-is
+    ; ro.blox.com — return as-is, Windows hands to Roblox launcher
     return url
 }
 
@@ -896,6 +920,11 @@ UpdateSearchArea() {
 ; ================================================================
 CheckForUpdates(force := false) {
     global MacroVersion, RepoOwner, RepoName, RawBase
+
+    global UpdateAttempted
+    if (UpdateAttempted && !force)
+        return
+    UpdateAttempted := true
 
     GuiStatus.Text := "Checking for updates..."
 
@@ -1980,27 +2009,17 @@ RejoinPS() {
         }
 
         ; Resolve ro.blox.com shortlinks to proper roblox:// protocol before launching
-        resolvedPS := ParsePSLink(PrivateServer)
         GuiStatus.Text := "Launching PS link..."
 
-        ; Use RunWait with open verb — forces Windows to use the correct URL handler
-        ; Works for roblox://, ro.blox.com, and roblox.com links
         launched := false
         Loop 3 {
             try {
-                Run("open " . resolvedPS)
+                Run(PrivateServer)
                 launched := true
                 break
             } catch {
-                ; Fallback to plain Run if open verb fails
-                try {
-                    Run(resolvedPS)
-                    launched := true
-                    break
-                } catch {
-                    GuiStatus.Text := "Launch attempt " . A_Index . " failed, retrying..."
-                    Sleep(2000)
-                }
+                GuiStatus.Text := "Launch attempt " . A_Index . " failed, retrying..."
+                Sleep(2000)
             }
         }
 
@@ -2022,12 +2041,11 @@ RejoinPS() {
             if (A_TickCount > reconnectDeadline) {
                 GuiStatus.Text := "Rejoin timed out — retrying launch..."
                 PrivateServer := IniRead(IniFile, "Settings", "PSLink", PrivateServer)
-                resolvedPS := ParsePSLink(PrivateServer)
                 try {
-                    Run(resolvedPS)
+                    Run(PrivateServer)
                 } catch {
                     Sleep(2000)
-                    Run(resolvedPS)
+                    Run(PrivateServer)
                 }
                 reconnectDeadline := A_TickCount + 120000
             }
