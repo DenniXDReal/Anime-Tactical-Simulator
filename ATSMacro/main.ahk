@@ -395,6 +395,8 @@ F5:: Execute_ResetTravelUI()
 ; ================================================================
 ;   CORE LOGIC
 ; ================================================================
+
+
 StartMacro() {
     global Running, SessionStart, CurrentRaidStep, HasSummonedThisSession, RobloxTitle
     Running                 := true
@@ -403,6 +405,23 @@ StartMacro() {
     HasSummonedThisSession  := false
     UpdateSpeedScale()  ; calculate speed scalar from user speed setting
     UpdateSearchArea()  ; calculate search region from current Roblox window size
+
+    ; Restore cooldown timestamps from INI so restarts respect real cooldowns
+    savedAV   := Integer(IniRead(IniFile, "Cooldowns", "LastAVTime",   "0"))
+    savedRift := Integer(IniRead(IniFile, "Cooldowns", "LastRiftTime", "0"))
+    now       := A_TickCount
+    ; Only restore if the saved time is recent (within 2x the interval)
+    ; A_TickCount resets on reboot so we store real-world epoch via A_Now
+    savedAVEpoch   := IniRead(IniFile, "Cooldowns", "LastAVEpoch",   "0")
+    savedRiftEpoch := IniRead(IniFile, "Cooldowns", "LastRiftEpoch", "0")
+    if (savedAVEpoch != "0") {
+        elapsedSinceAV := DateDiff(A_Now, savedAVEpoch, "Seconds") * 1000
+        LastAVTime := (elapsedSinceAV < AVIntervalMs) ? (now - elapsedSinceAV) : 0
+    }
+    if (savedRiftEpoch != "0") {
+        elapsedSinceRift := DateDiff(A_Now, savedRiftEpoch, "Seconds") * 1000
+        LastRiftTime := (elapsedSinceRift < RiftIntervalMs) ? (now - elapsedSinceRift) : 0
+    }
     GuiStatus.Text  := "● Running"
     GuiStatus.Opt("c00FF99")
 
@@ -421,6 +440,9 @@ StopMacro() {
     global Running, SummonHasRun, MacroLock, LastAVTime, LastRiftTime, CurrentRaidStep, MacroPaused
     SummonHasRun    := false
     MacroLock       := false
+    ; Persist cooldown timestamps so they survive macro stop/start
+    IniWrite(LastAVTime,   IniFile, "Cooldowns", "LastAVTime")
+    IniWrite(LastRiftTime, IniFile, "Cooldowns", "LastRiftTime")
     LastAVTime      := 0
     LastRiftTime    := 0
     Running         := false
@@ -515,7 +537,7 @@ MainLoop() {
 
     ; ── SCHEDULING ───────────────────────────────────────────────
     ; Summon  → once per session
-    ; AV      → timed every AVIntervalMs  (default 5 min)
+    ; AV      → timed every 10 min (AVIntervalMs = 600000ms)
     ; Rift    → timed every RiftIntervalMs (default 15 min)
     ; DD / Raid / Custom → filler, run every cycle if enabled
     ;
@@ -528,26 +550,35 @@ MainLoop() {
 
     ; 2. AV — only when interval elapsed
     if (Running && ModeAbandonVillage) {
+        now   := A_TickCount
         avDue := (LastAVTime == 0 || (now - LastAVTime >= AVIntervalMs))
         if (avDue) {
-            LastAVTime := A_TickCount
             RunDemonSlayer()
+            LastAVTime := A_TickCount  ; set AFTER run completes
+            IniWrite(A_Now, IniFile, "Cooldowns", "LastAVEpoch")
+            UpdateUI()
         } else {
             remaining := Round((AVIntervalMs - (now - LastAVTime)) / 1000)
-            GuiStatus.Text := "AV ready in " remaining "s — running fillers..."
+            m := remaining // 60
+            s := Mod(remaining, 60)
+            GuiStatus.Text := "AV in " . m . "m " . s . "s"
         }
     }
 
     ; 3. Rift — only when interval elapsed
     if (Running && ModeRift) {
-        riftDue := (LastRiftTime == 0 || (now - LastRiftTime >= RiftIntervalMs))
+        now      := A_TickCount
+        riftDue  := (LastRiftTime == 0 || (now - LastRiftTime >= RiftIntervalMs))
         if (riftDue) {
-            LastRiftTime := A_TickCount
             RunRift()
+            LastRiftTime := A_TickCount  ; set AFTER run completes
+            IniWrite(A_Now, IniFile, "Cooldowns", "LastRiftEpoch")
             UpdateUI()
         } else {
             remaining := Round((RiftIntervalMs - (now - LastRiftTime)) / 1000)
-            GuiStatus.Text := "Rift ready in " remaining "s — running fillers..."
+            m := remaining // 60
+            s := Mod(remaining, 60)
+            GuiStatus.Text := "Rift in " . m . "m " . s . "s"
         }
     }
 
@@ -2120,18 +2151,26 @@ RejoinPS() {
             if WinExist(RobloxTitle) {
                 WinActivate(RobloxTitle)
                 Sleep(2000)
-                ; Close and minimize browser now that Roblox is detected
+                ; Close browser now that Roblox is detected
                 GuiStatus.Text := "Roblox detected — closing browser..."
                 for browserExe in ["ahk_exe chrome.exe", "ahk_exe firefox.exe", "ahk_exe msedge.exe", "ahk_exe opera.exe", "ahk_exe brave.exe"] {
                     if WinExist(browserExe) {
-                        WinActivate(browserExe)
-                        WinWaitActive(browserExe, , 2)
-                        Send("^w")
-                        Sleep(300)
-                        if WinExist(browserExe)
-                            WinMinimize(browserExe)
+                        WinClose(browserExe)
+                        Sleep(600)
+                        ; Force kill if still open (e.g. "close tabs?" prompt)
+                        if WinExist(browserExe) {
+                            WinActivate(browserExe)
+                            WinWaitActive(browserExe, , 2)
+                            Send("!{F4}")
+                            Sleep(400)
+                        }
                         break
                     }
+                }
+                ; Bring Roblox back to front after browser close
+                if WinExist(RobloxTitle) {
+                    WinActivate(RobloxTitle)
+                    WinWaitActive(RobloxTitle, , 3)
                 }
                 Sleep(500)
                 break
@@ -2708,12 +2747,33 @@ InsertTriggerPoint() {
 
 
 PlayEditorSteps() {
-    global EditorSteps
+    global EditorSteps, RobloxTitle, SpeedScale
     if (EditorSteps.Length == 0) {
         MsgBox("No steps to play.", "Editor", "Icon!")
         return
     }
-    PlaySequence(EditorSteps)
+    ; Activate Roblox first
+    if WinExist(RobloxTitle) {
+        WinActivate(RobloxTitle)
+        WinWaitActive(RobloxTitle, , 3)
+    }
+    BlockInput("On")
+    for step in EditorSteps {
+        if (step["type"] == "key") {
+            scaledDur := Max(10, Round(step["dur"] * SpeedScale))
+            Send("{" step["key"] " down}"), Sleep(scaledDur), Send("{" step["key"] " up}")
+        } else if (step["type"] == "click") {
+            MouseMove(step["x"], step["y"])
+            MouseMove(1, 0,, "R")
+            MouseClick("Left", -1, 0,,,, "R")
+            Sleep(50)
+            if (step.Has("dur") && step["dur"] > 0)
+                Sleep(Round(step["dur"] * SpeedScale))
+        } else if (step["type"] == "sleep") {
+            Sleep(Max(10, Round(step["dur"] * SpeedScale)))
+        }
+    }
+    BlockInput("Off")
 }
 
 AddStepManual() {
