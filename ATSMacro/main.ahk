@@ -90,7 +90,54 @@ global FolderSummon       := A_ScriptDir "\Summon"
 global MovementFiles      := Map()  ; tracks which movement files are loaded
 ; Loaded custom sequences — keyed by sequence name
 ; e.g. CustomSeqs["DD_Step1"] := [{type:"key",key:"s",dur:500}, ...]
+global GM_DD := [
+    Map("key","DD_EnterRaid","label","Enter Raid",  "trigger","—"),
+    Map("key","DD_Step1",    "label","Step 1",      "trigger","12 enemies"),
+    Map("key","DD_Step2",    "label","Step 2",      "trigger","10 enemies"),
+    Map("key","DD_Step3",    "label","Step 3",      "trigger","8 enemies"),
+    Map("key","DD_Step4",    "label","Step 4",      "trigger","6 enemies"),
+    Map("key","DD_Step5",    "label","Step 5",      "trigger","4 enemies"),
+    Map("key","DD_Step6",    "label","Step 6",      "trigger","2 enemies"),
+    Map("key","DD_Step7",    "label","Step 7",      "trigger","10 enemies (2nd)"),
+    Map("key","DD_Step8",    "label","Step 8",      "trigger","5 enemies"),
+    Map("key","DD_Step9",    "label","Step 9",      "trigger","1 enemy"),
+    Map("key","DD_Step10",   "label","Step 10",     "trigger","0 enemies")
+]
+global GM_AV := [
+    Map("key","AV_Entry", "label","Entry",  "trigger","—"),
+    Map("key","AV_Step1", "label","Step 1", "trigger","After entry")
+]
+global GM_Rift := [
+    Map("key","Rift_Entry",  "label","Entry",  "trigger","—"),
+    Map("key","Rift_Custom", "label","Custom",  "trigger","—")
+]
+global GM_Raid_NamexPlanet := [
+    Map("key","Raid_NamexPlanet", "label","Namex Planet (Raid)", "trigger","—")
+]
+global GM_Raid_ColosseumKingdom := [
+    Map("key","Raid_ColosseumKingdom", "label","Colosseum Kingdom (Raid)", "trigger","—")
+]
+global GM_Raid_DemonForest := [
+    Map("key","Raid_DemonForest", "label","Demon Forest (Raid)", "trigger","—")
+]
+global GM_Raid_DungeonTown := [
+    Map("key","Raid_DungeonTown", "label","Dungeon Town (Raid)", "trigger","—")
+]
+global GM_Raid_ReaperSociety := [
+    Map("key","Raid_ReaperSociety", "label","Reaper Society (Raid)", "trigger","—")
+]
+global GM_Custom := [
+    Map("key","Custom_Movement","label","Movement","trigger","—")
+]
+global GM_Summon := [
+    Map("key","Summon_DungeonTown",   "label","Dungeon Town",   "trigger","—"),
+    Map("key","Summon_ReaperSociety", "label","Reaper Society", "trigger","—"),
+    Map("key","Summon_SoulSociety",   "label","Soul Society",   "trigger","—"),
+    Map("key","Summon_Map4",          "label","Map 4",          "trigger","—"),
+    Map("key","Summon_Map5",          "label","Map 5",          "trigger","—")
+]
 global CustomSeqs         := Map()
+global SlotTriggers       := Map()   ; key -> custom trigger string, saved to Sequences.txt
 ; Search Area Coordinates (for FindText enemy-count overlay)
 ; Search area — calculated dynamically from Roblox window at runtime
 ; These are set by UpdateSearchArea() on start and after every rejoin
@@ -368,9 +415,9 @@ DdlSummonMap.OnEvent("Change", UpdateSummonMap)
 DdlSummonMap.Value := 1
 ChkSummonActive.OnEvent("Click", (*) => UpdateSummonActive())
 
-LoadSequences()  ; load Sequences.txt (editor-saved sequences)
 InitFolders()    ; create folders if missing
-LoadAllMovementFiles()  ; load movements from Custom/Raids/Summon folders
+LoadAllMovementFiles()  ; load movements first (steps from txt files)
+LoadSequences()  ; load Sequences.txt AFTER — overwrites triggers with user config
 
 ; Debug overlay GUI
 DebugGui := Gui("+AlwaysOnTop -Caption +ToolWindow +E0x20")
@@ -1879,11 +1926,10 @@ LoadMovementFile(path) {
             continue
         keysInFile[parts[1]] := true
     }
-    ; Clear those keys before reloading
+    ; Clear steps only — preserve any trigger overrides already loaded from Sequences.txt
     for k in keysInFile {
         CustomSeqs[k] := []
-        if SlotTriggers.Has(k)
-            SlotTriggers.Delete(k)
+        ; Do NOT delete SlotTriggers here — Sequences.txt overrides take priority
     }
 
     ; Second pass — load fresh
@@ -1899,6 +1945,40 @@ LoadMovementFile(path) {
         if (t == "trigger") {
             SlotTriggers[seqName] := parts[3]
             continue
+        }
+        ; Auto-register slot into GM array if not already present
+        if (t == "key" || t == "click" || t == "sleep" || t == "triggerpoint") {
+            gmKey := ""
+            if (SubStr(seqName, 1, 3) == "DD_") {
+                gmKey := "DD"
+            } else if (SubStr(seqName, 1, 3) == "AV_") {
+                gmKey := "AV"
+            } else if (SubStr(seqName, 1, 5) == "Rift_") {
+                gmKey := "Rift"
+            } else if (SubStr(seqName, 1, 5) == "Raid_") {
+                gmKey := "Raid"
+            } else if (SubStr(seqName, 1, 7) == "Summon_") {
+                gmKey := "Summon"
+            } else if (SubStr(seqName, 1, 7) == "Custom_") {
+                gmKey := "Custom"
+            }
+            if (gmKey != "") {
+                gmArr     := GetGMSlots(gmKey)
+                alreadyIn := false
+                for s in gmArr {
+                    if (s["key"] == seqName) {
+                        alreadyIn := true
+                        break
+                    }
+                }
+                if (!alreadyIn) {
+                    lbl := RegExReplace(SubStr(seqName, StrLen(gmKey) + 2), "([A-Z])", " $1")
+                    lbl := Trim(lbl)
+                    if (lbl == "")
+                        lbl := seqName
+                    gmArr.Push(Map("key", seqName, "label", lbl, "trigger", "—"))
+                }
+            }
         }
         if (!CustomSeqs.Has(seqName))
             CustomSeqs[seqName] := []
@@ -1978,6 +2058,8 @@ ReloadMovementFolder(folder) {
         LoadMovementFile(A_LoopFileFullPath)
         MovementFiles[A_LoopFileName] := A_LoopFileFullPath
     }
+    ; Re-apply trigger overrides from Sequences.txt so user config is not lost
+    LoadSequences()
     GuiStatus.Text := "✔ Reloaded: " folder
 }
 
@@ -1987,8 +2069,6 @@ LoadSequences() {
     SlotTriggers := Map()
     if (!FileExist(SeqFile))
         return
-    ; Movement file prefixes — these are loaded from txt files, skip them here
-    movPrefixes := ["DD_", "AV_", "Rift_", "Raid_", "Summon_", "Custom_"]
     for line in StrSplit(FileRead(SeqFile), "`n", "`r") {
         line := Trim(line)
         if (line == "" || SubStr(line, 1, 1) == ";")
@@ -1997,43 +2077,101 @@ LoadSequences() {
         if (parts.Length < 3)
             continue
         seqName := parts[1]
-        ; Skip keys that belong to movement files — they load from txt folders
-        isMovKey := false
-        for pfx in movPrefixes {
-            if (SubStr(seqName, 1, StrLen(pfx)) == pfx) {
-                isMovKey := true
-                break
-            }
-        }
-        if (isMovKey)
-            continue
-        t := parts[2]
+        t       := parts[2]
         if (t == "trigger") {
             SlotTriggers[seqName] := parts[3]
             continue
         }
+        if (t == "slotdef") {
+            slotLabel := parts[3]
+            gmKey     := (parts.Length >= 4) ? parts[4] : "Custom"
+            gmArr     := GetGMSlots(gmKey)
+            alreadyIn := false
+            for s in gmArr {
+                if (s["key"] == seqName) {
+                    alreadyIn := true
+                    break
+                }
+            }
+            if (!alreadyIn)
+                gmArr.Push(Map("key", seqName, "label", slotLabel, "trigger", "—"))
+            continue
+        }
+        ; Auto-register slot into GM array if not already present
+        if (t == "key" || t == "click" || t == "sleep" || t == "triggerpoint") {
+            gmKey := ""
+            if (SubStr(seqName, 1, 3) == "DD_") {
+                gmKey := "DD"
+            } else if (SubStr(seqName, 1, 3) == "AV_") {
+                gmKey := "AV"
+            } else if (SubStr(seqName, 1, 5) == "Rift_") {
+                gmKey := "Rift"
+            } else if (SubStr(seqName, 1, 5) == "Raid_") {
+                gmKey := "Raid"
+            } else if (SubStr(seqName, 1, 7) == "Summon_") {
+                gmKey := "Summon"
+            } else if (SubStr(seqName, 1, 7) == "Custom_") {
+                gmKey := "Custom"
+            }
+            if (gmKey != "") {
+                gmArr     := GetGMSlots(gmKey)
+                alreadyIn := false
+                for s in gmArr {
+                    if (s["key"] == seqName) {
+                        alreadyIn := true
+                        break
+                    }
+                }
+                if (!alreadyIn) {
+                    lbl := RegExReplace(SubStr(seqName, StrLen(gmKey) + 2), "([A-Z])", " $1")
+                    lbl := Trim(lbl)
+                    if (lbl == "")
+                        lbl := seqName
+                    gmArr.Push(Map("key", seqName, "label", lbl, "trigger", "—"))
+                }
+            }
+        }
+        ; Load step into CustomSeqs (all keys, no skipping)
         if (!CustomSeqs.Has(seqName))
             CustomSeqs[seqName] := []
         step := Map("type", t)
         if (t == "key") {
             step["key"] := parts[3]
             step["dur"] := Integer(parts[4])
-        }
-        if (t == "click") {
+        } else if (t == "click") {
             step["x"]   := Integer(parts[3])
             step["y"]   := Integer(parts[4])
             step["dur"] := (parts.Length >= 5) ? Integer(parts[5]) : 80
-        }
-        if (t == "sleep") {
+        } else if (t == "sleep") {
             step["dur"] := Integer(parts[3])
+        } else if (t == "triggerpoint") {
+            step["count"] := Integer(parts[3])
         }
         CustomSeqs[seqName].Push(step)
     }
 }
 
 SaveSequences() {
-    global CustomSeqs, SeqFile, SlotTriggers
+    global CustomSeqs, SeqFile, SlotTriggers, GM_DD, GM_AV, GM_Rift, GM_Summon, GM_Custom
+    global GM_Raid_NamexPlanet, GM_Raid_ColosseumKingdom, GM_Raid_DemonForest, GM_Raid_DungeonTown, GM_Raid_ReaperSociety
     out := ""
+    ; Save slot definitions for dynamically added slots (non-hardcoded)
+    hardcoded := Map(
+        "DD_EnterRaid",1,"DD_Step1",1,"DD_Step2",1,"DD_Step3",1,"DD_Step4",1,
+        "DD_Step5",1,"DD_Step6",1,"DD_Step7",1,"DD_Step8",1,"DD_Step9",1,"DD_Step10",1,
+        "AV_Entry",1,"AV_Step1",1,"Rift_Entry",1,"Rift_Custom",1,
+        "Raid_NamexPlanet",1,"Raid_ColosseumKingdom",1,"Raid_DemonForest",1,
+        "Raid_DungeonTown",1,"Raid_ReaperSociety",1,
+        "Summon_DungeonTown",1,"Summon_ReaperSociety",1,"Summon_SoulSociety",1,
+        "Custom_Movement",1
+    )
+    allGMs := Map("DD",GM_DD,"AV",GM_AV,"Rift",GM_Rift,"Summon",GM_Summon,"Custom",GM_Custom)
+    for gmKey, gmSlots in allGMs {
+        for slot in gmSlots {
+            if (!hardcoded.Has(slot["key"]))
+                out .= slot["key"] "|slotdef|" slot["label"] "|" gmKey "`n"
+        }
+    }
     ; Save trigger overrides
     for seqKey, trigger in SlotTriggers
         out .= seqKey "|trigger|" trigger "`n"
@@ -2231,57 +2369,9 @@ global EditorSlotLV    := ""
 global EditorAppendMode  := false  ; true = append to existing steps, false = replace
 global CustomFileName    := ""      ; name entered by user for saving custom gamemode file
 global EditorSlotIdx     := 1       ; currently selected slot index
-global SlotTriggers      := Map()   ; key -> custom trigger string, saved to Sequences.txt
 global TriggerOptions    := ["— (manual/always)", "0 enemies", "1 enemy", "2 enemies", "3 enemies", "4 enemies", "5 enemies", "6 enemies", "7 enemies", "8 enemies", "9 enemies", "10 enemies", "11 enemies", "12 enemies", "13 enemies", "14 enemies", "15 enemies", "16 enemies", "17 enemies", "18 enemies", "19 enemies", "20 enemies", "21 enemies", "22 enemies", "23 enemies", "24 enemies", "25 enemies", "26 enemies", "27 enemies", "28 enemies", "29 enemies", "30 enemies", "31 enemies", "32 enemies", "33 enemies", "34 enemies", "35 enemies", "After entry"]
 
 ; Gamemode slot definitions: key -> {label, trigger}
-global GM_DD := [
-    Map("key","DD_EnterRaid","label","Enter Raid",  "trigger","—"),
-    Map("key","DD_Step1",    "label","Step 1",      "trigger","12 enemies"),
-    Map("key","DD_Step2",    "label","Step 2",      "trigger","10 enemies"),
-    Map("key","DD_Step3",    "label","Step 3",      "trigger","8 enemies"),
-    Map("key","DD_Step4",    "label","Step 4",      "trigger","6 enemies"),
-    Map("key","DD_Step5",    "label","Step 5",      "trigger","4 enemies"),
-    Map("key","DD_Step6",    "label","Step 6",      "trigger","2 enemies"),
-    Map("key","DD_Step7",    "label","Step 7",      "trigger","10 enemies (2nd)"),
-    Map("key","DD_Step8",    "label","Step 8",      "trigger","5 enemies"),
-    Map("key","DD_Step9",    "label","Step 9",      "trigger","1 enemy"),
-    Map("key","DD_Step10",   "label","Step 10",     "trigger","0 enemies")
-]
-global GM_AV := [
-    Map("key","AV_Entry", "label","Entry",  "trigger","—"),
-    Map("key","AV_Step1", "label","Step 1", "trigger","After entry")
-]
-global GM_Rift := [
-    Map("key","Rift_Entry",  "label","Entry",  "trigger","—"),
-    Map("key","Rift_Custom", "label","Custom",  "trigger","—")
-]
-global GM_Raid_NamexPlanet := [
-    Map("key","Raid_NamexPlanet", "label","Namex Planet (Raid)", "trigger","—")
-]
-global GM_Raid_ColosseumKingdom := [
-    Map("key","Raid_ColosseumKingdom", "label","Colosseum Kingdom (Raid)", "trigger","—")
-]
-global GM_Raid_DemonForest := [
-    Map("key","Raid_DemonForest", "label","Demon Forest (Raid)", "trigger","—")
-]
-global GM_Raid_DungeonTown := [
-    Map("key","Raid_DungeonTown", "label","Dungeon Town (Raid)", "trigger","—")
-]
-global GM_Raid_ReaperSociety := [
-    Map("key","Raid_ReaperSociety", "label","Reaper Society (Raid)", "trigger","—")
-]
-global GM_Custom := [
-    Map("key","Custom_Movement","label","Movement","trigger","—")
-]
-global GM_Summon := [
-    Map("key","Summon_DungeonTown",   "label","Dungeon Town",   "trigger","—"),
-    Map("key","Summon_ReaperSociety", "label","Reaper Society", "trigger","—"),
-    Map("key","Summon_SoulSociety",   "label","Soul Society",   "trigger","—"),
-    Map("key","Summon_Map4",          "label","Map 4",          "trigger","—"),
-    Map("key","Summon_Map5",          "label","Map 5",          "trigger","—")
-]
-
 GetGMSlots(gm) {
     global GM_DD, GM_AV, GM_Rift, GM_Custom, GM_Summon
     if (gm == "DD")
