@@ -35,7 +35,7 @@ InitFiles()
 ; ---------------- INITIALIZE SETTINGS ----------------
 global IniFile        := A_ScriptDir "\Settings.ini"
 global DiscordWebhook := IniRead(IniFile, "Settings", "Webhook", "")
-global MacroVersion      := "2.4.0"
+global MacroVersion      := "2.4.1"
 global CreatorSpeed      := 32      ; macro creator's in-game speed (do not change)
 global UserSpeed         := 32      ; user's in-game speed (set in Settings)
 global SpeedScale        := 1.0     ; calculated as CreatorSpeed / UserSpeed
