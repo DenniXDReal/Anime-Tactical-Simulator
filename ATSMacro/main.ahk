@@ -15,7 +15,7 @@ SetTimer(CheckForUpdates, -1500)
 SetDefaultMouseSpeed(0)
 CoordMode("Mouse", "Screen")
 ; ================================================================
-;   DenniXD ATS MACRO V2.3.8 — Combined Double Dungeon + Abandon Village
+;   DenniXD ATS MACRO V2.3.9 — Combined Double Dungeon + Abandon Village
 ; ================================================================
 ; ---------------- INITIALIZE FILES ----------------
 InitFiles() {
@@ -27,7 +27,7 @@ InitFiles() {
     }
     ; Create empty Sequences.txt if missing
     if (!FileExist(seqPath)) {
-        FileAppend("; DenniXD ATS Macro V2.3.8 - Sequences`n; Auto-generated on first run`n", seqPath, "UTF-8")
+        FileAppend("; DenniXD ATS Macro V2.3.9 - Sequences`n; Auto-generated on first run`n", seqPath, "UTF-8")
     }
 }
 InitFiles()
@@ -35,7 +35,7 @@ InitFiles()
 ; ---------------- INITIALIZE SETTINGS ----------------
 global IniFile        := A_ScriptDir "\Settings.ini"
 global DiscordWebhook := IniRead(IniFile, "Settings", "Webhook", "")
-global MacroVersion      := "2.3.8"
+global MacroVersion      := "2.3.9"
 global CreatorSpeed      := 33      ; macro creator's in-game speed (do not change)
 global UserSpeed         := 33      ; user's in-game speed (set in Settings)
 global SpeedScale        := 1.0     ; calculated as CreatorSpeed / UserSpeed
@@ -140,7 +140,7 @@ global Text0  := "|<>D83A37-323232$71.00000000000000000000000000000T00000000003z
 ; ================================================================
 ;   GUI SETUP  —  Modern dark card layout
 ; ================================================================
-MyGui := Gui("+AlwaysOnTop -Caption +Border", "DenniXD ATS Macro V2.3.8")
+MyGui := Gui("+AlwaysOnTop -Caption +Border", "DenniXD ATS Macro V2.3.9")
 MyGui.BackColor := "0D0D0D"
 OnMessage(0x0201, WM_LBUTTONDOWN)
 WM_LBUTTONDOWN(wParam, lParam, msg, hwnd) {
@@ -158,7 +158,7 @@ MyGui.AddText("x0 y0 w430 h3 Background7B2FFF", "")   ; purple accent strip
 MyGui.SetFont("s13 cFFFFFF Bold", "Segoe UI")
 MyGui.AddText("x16 y14 w300", "DenniXD ATS MACRO")
 MyGui.SetFont("s8 c555555 Norm", "Segoe UI")
-MyGui.AddText("x16 y32 w300", "V2.3.8  ·  Double Dungeon + Abandon Village")
+MyGui.AddText("x16 y32 w300", "V2.3.9  ·  Double Dungeon + Abandon Village")
 
 ; Close [ X ]
 MyGui.SetFont("s10 cFF4455 Bold", "Segoe UI")
@@ -1552,7 +1552,7 @@ CaptureAndSend(IsManualTest := false) {
     Duration := h . "h " . m . "m " . s . "s"
     global RiftRuns, RaidRuns, RaidType, CustomRuns, CustomRunName
     currStatus := MacroPaused ? "⏸ Paused" : "● Running"
-    Payload := '{"embeds": [{"title": "DenniXD ATS Macro V2.3.8","color": 8323327,'
+    Payload := '{"embeds": [{"title": "DenniXD ATS Macro V2.3.9","color": 8323327,'
              . '"image": {"url": "attachment://ss.png"},'
              . '"fields": ['
              . '{"name": "🗡 Abandon Village",  "value": "' . DemonRuns   . ' runs", "inline": true},'
@@ -1563,7 +1563,7 @@ CaptureAndSend(IsManualTest := false) {
              . '{"name": "🔄 Rejoined",        "value": "' . RejoinCount . ' times", "inline": true},'
              . '{"name": "⏱ Uptime",          "value": "' . Duration    . '", "inline": true},'
              . '{"name": "📊 Status",          "value": "' . currStatus  . '", "inline": true}'
-             . '],"footer": {"text": "DenniXD ATS V2.3.8  ·  ' . FormatTime(, "HH:mm:ss") . '"}}]}'
+             . '],"footer": {"text": "DenniXD ATS V2.3.9  ·  ' . FormatTime(, "HH:mm:ss") . '"}}]}'
     try {
         FileOpen(JsonPath, "w", "UTF-8").Write(Payload)
         RunWait('curl.exe -s -F "payload_json=<' JsonPath '" -F "file=@' SSPath '" "' EditWeb.Value '"', , "Hide")
@@ -1636,7 +1636,7 @@ GenerateDefaultFiles() {
     global FolderCustom, FolderRaids, FolderSummon
 
     hdr := "; ================================================================`n"
-          . "; DenniXD ATS Macro V2.3.8 — Movement File (auto-generated)`n"
+          . "; DenniXD ATS Macro V2.3.9 — Movement File (auto-generated)`n"
           . "; Edit steps freely. Reload via Settings > Movement Files.`n"
           . "; Format:  SlotKey|key|keyname|ms  /  |click|x|y|ms  /  |sleep|ms`n"
           . "; ================================================================`n`n"
@@ -2316,7 +2316,7 @@ OpenSequenceEditor() {
     EditorGamemode := "DD"
     EditorSlotKey  := "DD_EnterRaid"
 
-    EditorGui := Gui("+AlwaysOnTop -MaximizeBox", "Gamemode Editor — DenniXD ATS V2.3.8")
+    EditorGui := Gui("+AlwaysOnTop -MaximizeBox", "Gamemode Editor — DenniXD ATS V2.3.9")
     EditorGui.BackColor := "111111"
     EditorGui.OnEvent("Close", (*) => CloseSequenceEditor())
 
@@ -2688,7 +2688,7 @@ EditorCaptureMouse() {
     if (!IsSet(EditorRecording) || !EditorRecording || !EditorOpen)
         return
     MouseGetPos(&mx, &my, &mWin)
-    edWin := WinExist("Gamemode Editor — DenniXD ATS V2.3.8")
+    edWin := WinExist("Gamemode Editor — DenniXD ATS V2.3.9")
     if (edWin && mWin == edWin)
         return
     EditorSteps.Push(Map("type","click","x",mx,"y",my,"dur",80))
@@ -2938,7 +2938,7 @@ SaveEditorSequence() {
 ; Writes multiple slot keys into one file (preserves all slots)
 SaveMovementFileSlots(path, keys) {
     global CustomSeqs, SlotTriggers
-    out := "; DenniXD ATS V2.3.8 — saved from editor`n`n"
+    out := "; DenniXD ATS V2.3.9 — saved from editor`n`n"
     for slotKey in keys {
         if (!CustomSeqs.Has(slotKey))
             continue
