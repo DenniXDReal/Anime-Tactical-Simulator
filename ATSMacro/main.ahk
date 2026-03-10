@@ -15,7 +15,7 @@ SetTimer(CheckForUpdates, -1500)
 SetDefaultMouseSpeed(0)
 CoordMode("Mouse", "Screen")
 ; ================================================================
-;   DenniXD ATS MACRO v2.4.1 — Combined Double Dungeon + Abandon Village
+;   DenniXD ATS MACRO V2.4.2 — Combined Double Dungeon + Abandon Village
 ; ================================================================
 ; ---------------- INITIALIZE FILES ----------------
 InitFiles() {
@@ -27,7 +27,7 @@ InitFiles() {
     }
     ; Create empty Sequences.txt if missing
     if (!FileExist(seqPath)) {
-        FileAppend("; DenniXD ATS Macro v2.4.1 - Sequences`n; Auto-generated on first run`n", seqPath, "UTF-8")
+        FileAppend("; DenniXD ATS Macro V2.4.2 - Sequences`n; Auto-generated on first run`n", seqPath, "UTF-8")
     }
 }
 InitFiles()
@@ -35,7 +35,7 @@ InitFiles()
 ; ---------------- INITIALIZE SETTINGS ----------------
 global IniFile        := A_ScriptDir "\Settings.ini"
 global DiscordWebhook := IniRead(IniFile, "Settings", "Webhook", "")
-global MacroVersion      := "2.4.1"
+global MacroVersion      := "2.4.2"
 global CreatorSpeed      := 32      ; macro creator's in-game speed (do not change)
 global UserSpeed         := 32      ; user's in-game speed (set in Settings)
 global SpeedScale        := 1.0     ; calculated as CreatorSpeed / UserSpeed
@@ -179,17 +179,17 @@ global Text4  := "|<>E5514E-323232$71.00000000000000000U80000000003lw0000000007X
 global Text2  := "|<>DD4441-323232$71.00000000000000000000000000000D00000000001zU0000000007zU000000000TzU000000001zz0000000003sT0000000007US000000000D0w000000000S3s0000000000Dk0000000000z00000000003y0000000000Ts0000000001z0000000000Dw0000000000Tk0000000001zzk000000003zzU000000007zz0000000007zw0000000000000000000000000000000000000001"
 global Text3  := ""  ; TODO: capture 3-enemy count pattern with FindText tool
 global Text1  := "|<>DF4744-323232$71.00000000000000000000000000000000000000000000000000000100000000000DU0000000000z00000000003y0000000000Dw0000000000zs0000000001zk0000000003zU0000000003T00000000000y00000000001w00000000003s00000000007k0000000000DU0000000000T00000000000y00000000001w00000000003s00000000003k0000000000700000000000000001"
-global TextAVActive  := "|<>3F3F3F-0.90$71.000000000000000000000000000000000000Dzs0000003U0zzk000000701zzU000000C003U0000000Q0070400821ks00C7yDwsCDtk00QDwzvkwznU00sTnznlvvr001ks7bXbb7i003VkCD7jDzQ0073UQS7wTws00C70zwDkw1s00QC1zsDVzns00sQ1zkS1zbk01ks1vUQ1z7U00000000000000000000000000000000000000000000000000000000000000000000000000000000001"
+global TextAVActive  := "|<>FFFFFF-323232$181.0000000Tzzzzzs00Tzzzzzs00000000000000Dzzzzzw00Dzzzzzw000000000000007zzzzzy007zzzzzy000000000000003zzzzzz003zzzzzz000000000000001zzzzzzU01zzzzzzU00000000000000zzzzzzk00kDzzzzk00000000000000Tzzzzzs0001zzzzs0000000000000MDzztzzw000kzzzzw000003U000000z3zzU7zy001yDzzzw000003w007z00TVzzU1zz000z7zzzy000001y00Dzs0DkzzXszzU00TXzzzz000000z00Tzz07sTzlyTzk00DlzzzzU00000TU0Tzzk3wDzsz7zs007szzzzk00000Dk0Tzzw1y7zwTXzw001szzzzs000007s0Tzzz0z3zyDlzy0000Tzzzw000003w0Dy3zkTU3w7s7y0020M10Dy000001y0Dw0TsDk0Q3w0w00000003z000000z0Dw07y7sw6DzwM71s7US3UTUzk00wTU7w01z3xzUDzz8Tty7sTby7Vzy01zDk3y00zVzzw7zzUTzz3wDzzXVzzU3zzs1y00Dkzzz3zzkTzzVy7zzslzzs3zzw1z007wTzzVzzsTzzkz3zzy1zzy3zzy0zU03yDzzszzwDzzsTVzzz1zzz1zzz0Tk01z7zzyDzwDzzwDkzzzkzkTVzzzUDs00zXz3z0z07w7y7sTsDsTkDszUzk7w00Tlz0zUTU7w1z3wDs7wTk7wTkDs1y00DkzUDkDlny0zVy7slyDzzwDk7w0zU0DsTU7s7stz0Tkz3wMz7zzy7s3y0Tk07wDs3w3wQzUDsTVyATXzzy3w1z0Dw07w7w3y1y2Dk7wDkz6DlzU01z0zU3zUDy3z3z0z07w7y7sTX7sTU00zkzk0zwTy1zzzYTk3zzz3wDlXwDs00Tzzs0Tzzz0zzzWDzUzzzVy7sly7z3s7zzw0"
 global TextNightmare := "|<>FFB447-323232$141.00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000E000U000000000000000000D000S0000000000000003s1tw003s01k000000000000T0DD000T00S0000000000003w1sE003s03k000000000000TkD0000T00S0000000000003z1s0003s03k000000000000TsD70SQTS1zstsS0DC7D0zU3zVtsDzXzwDzDzbs3ztzwTy0TyDDXzwTzlztzzzUzzDzbzs3vttwTzXzyDzDzzwDztzszT0TDDDblwTbsS1yzjXwzDUDVs3tztww7XsT3kDXsyT3tw1wD0T7zDbUwT1sS1wT7nkTDUDzs3sTtww7XsD3kDXsyS3tw1zz0T1zDblwT1sS1wT7nsTDUDU03sDtwTzXsD3sDXsyTztw1w00T0zDXzwT1sTtwT7lzzDU7zk3s3tsDzXkD1zDXsy7ztw0zz0S0DD0ywS1s7tsC3UTzD03zs1k0ks07Vk60C71kQ0kks07w0000000w000000000000000000000ADU000000000000000000001zs000000000000000000000Tz0000000000000000000000zU00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000004"
 global TextMedium    := "|<>FFBC4C-323232$141.0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000620000000000000000000001ts0000000000000DU0S0000DDU0000000000001w07k0001ts0000000000000Dk1y0000D200000000000001z0Tk0001s00000000000000Dw3y0000D000000000000001zkzkDs1tssQ3lnkw0000000DyDy7zUTzD7USTzDk0000001zvzlzy7ztwy3nzzz0000000DjzSDrlzzDbkSTzzs0000001wznnsSDbtwy3nxzT0000000DbwST3nsTDbkST7lw0000001wT3nzyS3twy3nsyDU000000DVsSTznkTDbkST7lw0000001w43ns0T3twS7nsyDU000000DU0ST01zzD3zyT7lw0000001s03lyQDztsTznky7U000000D00S7zkzzD1zyS7kw0000000s03kTy3zss7vlkQ70000000200A0z024604AA10E0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000004"
 global TextEasy      := "|<>FFD258-323232$141.00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000zw000000000000000000000Tzs000000000000000000007zz000000000000000000000zzs000000000000000000007zz000000000000000000000y00000000000000000000007k00wsDsQ1k0000000000000y00DzXzrUT00000000000007zs3zwTwy3k0000000000000zz0zzXV3ky00000000000007zsDnwQ0T7U0000000000000zz1sDXw1sw00000000000007k0D1wTwDj00000000000000w01sDVzkzs00000000000003U0DVw1y3z00000000000000S00yTU1kTk00000000000003zz7zwQS1w0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000004"
 global TextHard      := "|<>FFC752-323232$141.00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000M00000000000000000000007U0000000000007U7U000000w0000000000000y0w0000007U0000000000007k7k000000w0000000000000y0y0000007U0000000000007k7k000000w0000000000000y0y1tkts7bU0000000000007k7kTzDzVzw0000000000000zzy7ztzwTzU0000000000007zzlzzDz7zw0000000000000zzyTbtw0yTU0000000000007zzXsTDUDVw0000000000000y0wS3ts1s7U0000000000007k7XkTD0D1w0000000000000w0wT3ts1wDU0000000000007U7VxzD07nw0000000000000w0wDzts0zzU0000000000003U7Uzz703zw0000000000000Q0Q3xks0DrU0000000000000000002000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000004"
-global TextLoaded := "|<>FBFFFB-323232$71.0000000000000000000000000000000000000000000003U0Tzk000000700zzU000000C003U0000000Q00700000000s00C7wDwsCDlk00QDsztkQznU00sTnznlvnr001ks77XXb3i003VkC77iDyQ0073UQC7wTss00C70ww7ks1k00QC0zsDUzns00sQ0zkC1zbk01UM0l080y3U00000000000000000000000000000000000000000000000000000000000000000000000000000000001"
+global TextLoaded := "|<>FFFFFF-323232$181.0000000Tzzzzzs00Tzzzzzs00000000000000Dzzzzzw00Dzzzzzw000000000000007zzzzzy007zzzzzy000000000000003zzzzzz003zzzzzz000000000000001zzzzzzU01zzzzzzU00000000000000zzzzzzk00kDzzzzk00000000000000Tzzzzzs0001zzzzs0000000000000MDzztzzw000kzzzzw000003U000000z3zzU7zy001yDzzzw000003w007z00TVzzU1zz000z7zzzy000001y00Dzs0DkzzXszzU00TXzzzz000000z00Tzz07sTzlyTzk00DlzzzzU00000TU0Tzzk3wDzsz7zs007szzzzk00000Dk0Tzzw1y7zwTXzw001szzzzs000007s0Tzzz0z3zyDlzy0000Tzzzw000003w0Dy3zkTU3w7s7y0020M10Dy000001y0Dw0TsDk0Q3w0w00000003z000000z0Dw07y7sw6DzwM71s7US3UTUzk00wTU7w01z3xzUDzz8Tty7sTby7Vzy01zDk3y00zVzzw7zzUTzz3wDzzXVzzU3zzs1y00Dkzzz3zzkTzzVy7zzslzzs3zzw1z007wTzzVzzsTzzkz3zzy1zzy3zzy0zU03yDzzszzwDzzsTVzzz1zzz1zzz0Tk01z7zzyDzwDzzwDkzzzkzkTVzzzUDs00zXz3z0z07w7y7sTsDsTkDszUzk7w00Tlz0zUTU7w1z3wDs7wTk7wTkDs1y00DkzUDkDlny0zVy7slyDzzwDk7w0zU0DsTU7s7stz0Tkz3wMz7zzy7s3y0Tk07wDs3w3wQzUDsTVyATXzzy3w1z0Dw07w7w3y1y2Dk7wDkz6DlzU01z0zU3zUDy3z3z0z07w7y7sTX7sTU00zkzk0zwTy1zzzYTk3zzz3wDlXwDs00Tzzs0Tzzz0zzzWDzUzzzVy7sly7z3s7zzw0"
 global Text0  := "|<>D83A37-323232$71.00000000000000000000000000000T00000000003z0000000000Dz0000000000zz0000000001zz0000000003ky000000000DUw000000000S1s000000000w3k000000001s7U000000003kD0000000007US000000000D0w000000000T1s000000000y7k000000000yTU000000001zy0000000001zw0000000001zk0000000001y00000000000000000000000000000000000000001"
 ; ================================================================
 ;   GUI SETUP  —  Modern dark card layout
 ; ================================================================
-MyGui := Gui("+AlwaysOnTop -Caption +Border", "DenniXD ATS Macro v2.4.1")
+MyGui := Gui("+AlwaysOnTop -Caption +Border", "DenniXD ATS Macro V2.4.2")
 MyGui.BackColor := "0D0D0D"
 OnMessage(0x0201, WM_LBUTTONDOWN)
 WM_LBUTTONDOWN(wParam, lParam, msg, hwnd) {
@@ -207,7 +207,7 @@ MyGui.AddText("x0 y0 w430 h3 Background7B2FFF", "")   ; purple accent strip
 MyGui.SetFont("s13 cFFFFFF Bold", "Segoe UI")
 MyGui.AddText("x16 y14 w300", "DenniXD ATS MACRO")
 MyGui.SetFont("s8 c555555 Norm", "Segoe UI")
-MyGui.AddText("x16 y32 w300", "v2.4.1  ·  Double Dungeon + Abandon Village")
+MyGui.AddText("x16 y32 w300", "V2.4.2  ·  Double Dungeon + Abandon Village")
 
 ; Close [ X ]
 MyGui.SetFont("s10 cFF4455 Bold", "Segoe UI")
@@ -723,28 +723,8 @@ RunDemonSlayer() {
     ; Text2 already confirmed — run Step1 immediately
     GuiStatus.Text := "Abandon Village — Step 1"
     RunCustomOrDefault("AV_Step1",      (*) => 0)
-    ; ── Wait for completion ──
-    ; Step 1: Confirm TextAVActive is visible (stage is running)
-    GuiStatus.Text := "Abandon Village — Waiting for stage to activate..."
-    AVActiveDeadline := A_TickCount + 60000
-    Loop {
-        if (!Running)
-            return
-        if (A_TickCount > AVActiveDeadline) {
-            GuiStatus.Text := "Abandon Village — Stage never activated, returning..."
-            CaptureAndSend(false)
-            ReturnToLobby()
-            return
-        }
-        if GetFindText().FindText(&FoundX, &FoundY, 27, 577, 127, 627, 0.15, 0.15, TextAVActive) {
-            GuiStatus.Text := "Abandon Village — Stage active, running..."
-            break
-        }
-        Sleep(500)
-    }
-
-    ; Step 2: Watch for TextLoaded (end screen) = win condition
-    ; TextLoaded appears at 27,577->127,627 same as rejoin game load detection
+    ; Watch for TextAVActive (win condition)
+    GuiStatus.Text := "Abandon Village — Waiting for completion..."
     CompletionDeadline := A_TickCount + 300000  ; 5 min max safety
     Loop {
         if (!Running)
@@ -755,11 +735,10 @@ RunDemonSlayer() {
             ReturnToLobby()
             return
         }
-        ; Win condition: end screen detected = stage cleared
-        if GetFindText().FindText(&FoundX, &FoundY, 27, 577, 127, 627, 0, 0, TextLoaded) {
+        if GetFindText().FindText(&FoundX, &FoundY, 860, 341, 1055, 391, 0.15, 0.15, TextAVActive) {
             Sleep(1000)
-            ; Double check its still there
-            if GetFindText().FindText(&FoundX, &FoundY, 27, 577, 127, 627, 0, 0, TextLoaded) {
+            ; Double check it's still there
+            if GetFindText().FindText(&FoundX, &FoundY, 860, 341, 1055, 391, 0.15, 0.15, TextAVActive) {
                 DemonRuns += 1
                 GuiStatus.Text := "● Done  [AV: " . DemonRuns . "]"
                 Sleep(5000)
@@ -1740,7 +1719,7 @@ CaptureAndSend(IsManualTest := false) {
     Duration := h . "h " . m . "m " . s . "s"
     global RiftRuns, RaidRuns, RaidType, CustomRuns, CustomRunName
     currStatus := MacroPaused ? "⏸ Paused" : "● Running"
-    Payload := '{"embeds": [{"title": "DenniXD ATS Macro v2.4.1","color": 8323327,'
+    Payload := '{"embeds": [{"title": "DenniXD ATS Macro V2.4.2","color": 8323327,'
              . '"image": {"url": "attachment://ss.png"},'
              . '"fields": ['
              . '{"name": "🗡 Abandon Village",  "value": "' . DemonRuns   . ' runs", "inline": true},'
@@ -1751,7 +1730,7 @@ CaptureAndSend(IsManualTest := false) {
              . '{"name": "🔄 Rejoined",        "value": "' . RejoinCount . ' times", "inline": true},'
              . '{"name": "⏱ Uptime",          "value": "' . Duration    . '", "inline": true},'
              . '{"name": "📊 Status",          "value": "' . currStatus  . '", "inline": true}'
-             . '],"footer": {"text": "DenniXD ATS v2.4.1  ·  ' . FormatTime(, "HH:mm:ss") . '"}}]}'
+             . '],"footer": {"text": "DenniXD ATS V2.4.2  ·  ' . FormatTime(, "HH:mm:ss") . '"}}]}'
     try {
         FileOpen(JsonPath, "w", "UTF-8").Write(Payload)
         RunWait('curl.exe -s -F "payload_json=<' JsonPath '" -F "file=@' SSPath '" "' EditWeb.Value '"', , "Hide")
@@ -1824,7 +1803,7 @@ GenerateDefaultFiles() {
     global FolderCustom, FolderRaids, FolderSummon
 
     hdr := "; ================================================================`n"
-          . "; DenniXD ATS Macro v2.4.1 — Movement File (auto-generated)`n"
+          . "; DenniXD ATS Macro V2.4.2 — Movement File (auto-generated)`n"
           . "; Edit steps freely. Reload via Settings > Movement Files.`n"
           . "; Format:  SlotKey|key|keyname|ms  /  |click|x|y|ms  /  |sleep|ms`n"
           . "; ================================================================`n`n"
@@ -2470,7 +2449,7 @@ RejoinPS() {
                 break
             }
             try {
-                if GetFindText().FindText(&fx, &fy, 27, 577, 127, 627, 0, 0, TextLoaded) {
+                if GetFindText().FindText(&fx, &fy, 860, 341, 1055, 391, 0, 0, TextLoaded) {
                     gameLoaded := true
                     GuiStatus.Text := "Game loaded — waiting 5s..."
                     break
@@ -2555,7 +2534,7 @@ OpenSequenceEditor() {
     EditorGamemode := "DD"
     EditorSlotKey  := "DD_EnterRaid"
 
-    EditorGui := Gui("+AlwaysOnTop -MaximizeBox", "Gamemode Editor — DenniXD ATS v2.4.1")
+    EditorGui := Gui("+AlwaysOnTop -MaximizeBox", "Gamemode Editor — DenniXD ATS V2.4.2")
     EditorGui.BackColor := "111111"
     EditorGui.OnEvent("Close", (*) => CloseSequenceEditor())
 
@@ -2927,7 +2906,7 @@ EditorCaptureMouse() {
     if (!IsSet(EditorRecording) || !EditorRecording || !EditorOpen)
         return
     MouseGetPos(&mx, &my, &mWin)
-    edWin := WinExist("Gamemode Editor — DenniXD ATS v2.4.1")
+    edWin := WinExist("Gamemode Editor — DenniXD ATS V2.4.2")
     if (edWin && mWin == edWin)
         return
     EditorSteps.Push(Map("type","click","x",mx,"y",my,"dur",80))
@@ -3177,7 +3156,7 @@ SaveEditorSequence() {
 ; Writes multiple slot keys into one file (preserves all slots)
 SaveMovementFileSlots(path, keys) {
     global CustomSeqs, SlotTriggers
-    out := "; DenniXD ATS v2.4.1 — saved from editor`n`n"
+    out := "; DenniXD ATS V2.4.2 — saved from editor`n`n"
     for slotKey in keys {
         if (!CustomSeqs.Has(slotKey))
             continue
