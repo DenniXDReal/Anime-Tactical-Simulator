@@ -15,7 +15,7 @@ SetTimer(CheckForUpdates, -1500)
 SetDefaultMouseSpeed(0)
 CoordMode("Mouse", "Screen")
 ; ================================================================
-;   DenniXD ATS MACRO V2.4.2 — Combined Double Dungeon + Abandon Village
+;   DenniXD ATS MACRO V2.4.3 — Combined Double Dungeon + Abandon Village
 ; ================================================================
 ; ---------------- INITIALIZE FILES ----------------
 InitFiles() {
@@ -27,7 +27,7 @@ InitFiles() {
     }
     ; Create empty Sequences.txt if missing
     if (!FileExist(seqPath)) {
-        FileAppend("; DenniXD ATS Macro V2.4.2 - Sequences`n; Auto-generated on first run`n", seqPath, "UTF-8")
+        FileAppend("; DenniXD ATS Macro V2.4.3 - Sequences`n; Auto-generated on first run`n", seqPath, "UTF-8")
     }
 }
 InitFiles()
@@ -35,7 +35,7 @@ InitFiles()
 ; ---------------- INITIALIZE SETTINGS ----------------
 global IniFile        := A_ScriptDir "\Settings.ini"
 global DiscordWebhook := IniRead(IniFile, "Settings", "Webhook", "")
-global MacroVersion      := "2.4.2"
+global MacroVersion      := "2.4.3"
 global CreatorSpeed      := 32      ; macro creator's in-game speed (do not change)
 global UserSpeed         := 32      ; user's in-game speed (set in Settings)
 global SpeedScale        := 1.0     ; calculated as CreatorSpeed / UserSpeed
@@ -56,6 +56,7 @@ global SessionStart    := A_TickCount
 global RaidStartTime   := 0
 global HasRunSpecial   := false
 global AVEntryFails    := 0
+global EntryFailCount  := 0  ; hard reset after 1 failed entry attempt
 global DebugVisible    := false
 global RobloxTitle     := "Roblox"
 global CurrentRaidStep := 0
@@ -189,7 +190,7 @@ global Text0  := "|<>D83A37-323232$71.00000000000000000000000000000T00000000003z
 ; ================================================================
 ;   GUI SETUP  —  Modern dark card layout
 ; ================================================================
-MyGui := Gui("+AlwaysOnTop -Caption +Border", "DenniXD ATS Macro V2.4.2")
+MyGui := Gui("+AlwaysOnTop -Caption +Border", "DenniXD ATS Macro V2.4.3")
 MyGui.BackColor := "0D0D0D"
 OnMessage(0x0201, WM_LBUTTONDOWN)
 WM_LBUTTONDOWN(wParam, lParam, msg, hwnd) {
@@ -207,7 +208,7 @@ MyGui.AddText("x0 y0 w430 h3 Background7B2FFF", "")   ; purple accent strip
 MyGui.SetFont("s13 cFFFFFF Bold", "Segoe UI")
 MyGui.AddText("x16 y14 w300", "DenniXD ATS MACRO")
 MyGui.SetFont("s8 c555555 Norm", "Segoe UI")
-MyGui.AddText("x16 y32 w300", "V2.4.2  ·  Double Dungeon + Abandon Village")
+MyGui.AddText("x16 y32 w300", "V2.4.3  ·  Double Dungeon + Abandon Village")
 
 ; Close [ X ]
 MyGui.SetFont("s10 cFF4455 Bold", "Segoe UI")
@@ -686,7 +687,7 @@ RunDynamicSlots(gmKey) {
 }
 
 RunDemonSlayer() {
-    global Running, DemonRuns, RaidStartTime, AVEntryFails
+    global Running, DemonRuns, RaidStartTime, AVEntryFails, EntryFailCount
     GuiStatus.Text := "Abandon Village — Entering"
     RunCustomOrDefault("AV_Entry",      (*) => 0)
     RaidStartTime := A_TickCount
@@ -701,20 +702,30 @@ RunDemonSlayer() {
             ; Before giving up — check if difficulty text is visible (confirms in stage)
             if (CheckDifficultyDetected()) {
                 GuiStatus.Text := "Abandon Village — Difficulty detected, continuing..."
+                EntryFailCount := 0
                 break
             }
             AVEntryFails += 1
+            EntryFailCount += 1
+            if (EntryFailCount >= 2) {
+                EntryFailCount := 0
+                GuiStatus.Text := "Abandon Village — Entry failed twice — hard resetting..."
+                ForceRejoin()
+                return
+            }
             GuiStatus.Text := "Abandon Village — Timed out, no stage detected — restarting cycle"
             return
         }
         ; Also check difficulty mid-poll as faster confirmation
         if (CheckDifficultyDetected()) {
             AVEntryFails := 0
+            EntryFailCount := 0
             GuiStatus.Text := "Abandon Village — Stage confirmed via difficulty"
             break
         }
         if GetFindText().FindText(&FoundX, &FoundY, StartX, StartY, EndX, EndY, 0.15, 0.15, Text2) {
             AVEntryFails  := 0
+            EntryFailCount := 0
             GuiStatus.Text := "Abandon Village — Stage confirmed"
             break
         }
@@ -752,7 +763,7 @@ RunDemonSlayer() {
 }
 RunDoubleDungeon() {
     ; CurrentRaidStep: 0 = not started, 1 = entered (waiting), 2+ = slot index into GM_DD
-    global Running, CurrentRaidStep, DungeonRuns, DDRunsSinceReset, RaidStartTime
+    global Running, CurrentRaidStep, DungeonRuns, DDRunsSinceReset, RaidStartTime, EntryFailCount
     global SlotTriggers, GM_DD, CustomSeqs, StartX, StartY, EndX, EndY
     if (!Running)
         return
@@ -816,6 +827,13 @@ RunDoubleDungeon() {
                 break
             }
             if (A_TickCount > EntryDeadline) {
+                EntryFailCount += 1
+                if (EntryFailCount >= 2) {
+                    EntryFailCount := 0
+                    GuiStatus.Text := "Double Dungeon — Entry failed twice — hard resetting..."
+                    ForceRejoin()
+                    return
+                }
                 GuiStatus.Text := "Double Dungeon — Timed out waiting for entry, restarting"
                 CurrentRaidStep := 0
                 return
@@ -1668,6 +1686,7 @@ ResetStats(*) {
         DemonRuns       := 0
         DungeonRuns     := 0
         DDRunsSinceReset    := 0
+        EntryFailCount      := 0
         RejoinCount     := 0
         CurrentRaidStep := 0
         SessionStart    := A_TickCount
@@ -1719,7 +1738,7 @@ CaptureAndSend(IsManualTest := false) {
     Duration := h . "h " . m . "m " . s . "s"
     global RiftRuns, RaidRuns, RaidType, CustomRuns, CustomRunName
     currStatus := MacroPaused ? "⏸ Paused" : "● Running"
-    Payload := '{"embeds": [{"title": "DenniXD ATS Macro V2.4.2","color": 8323327,'
+    Payload := '{"embeds": [{"title": "DenniXD ATS Macro V2.4.3","color": 8323327,'
              . '"image": {"url": "attachment://ss.png"},'
              . '"fields": ['
              . '{"name": "🗡 Abandon Village",  "value": "' . DemonRuns   . ' runs", "inline": true},'
@@ -1730,7 +1749,7 @@ CaptureAndSend(IsManualTest := false) {
              . '{"name": "🔄 Rejoined",        "value": "' . RejoinCount . ' times", "inline": true},'
              . '{"name": "⏱ Uptime",          "value": "' . Duration    . '", "inline": true},'
              . '{"name": "📊 Status",          "value": "' . currStatus  . '", "inline": true}'
-             . '],"footer": {"text": "DenniXD ATS V2.4.2  ·  ' . FormatTime(, "HH:mm:ss") . '"}}]}'
+             . '],"footer": {"text": "DenniXD ATS V2.4.3  ·  ' . FormatTime(, "HH:mm:ss") . '"}}]}'
     try {
         FileOpen(JsonPath, "w", "UTF-8").Write(Payload)
         RunWait('curl.exe -s -F "payload_json=<' JsonPath '" -F "file=@' SSPath '" "' EditWeb.Value '"', , "Hide")
@@ -1803,7 +1822,7 @@ GenerateDefaultFiles() {
     global FolderCustom, FolderRaids, FolderSummon
 
     hdr := "; ================================================================`n"
-          . "; DenniXD ATS Macro V2.4.2 — Movement File (auto-generated)`n"
+          . "; DenniXD ATS Macro V2.4.3 — Movement File (auto-generated)`n"
           . "; Edit steps freely. Reload via Settings > Movement Files.`n"
           . "; Format:  SlotKey|key|keyname|ms  /  |click|x|y|ms  /  |sleep|ms`n"
           . "; ================================================================`n`n"
@@ -2534,7 +2553,7 @@ OpenSequenceEditor() {
     EditorGamemode := "DD"
     EditorSlotKey  := "DD_EnterRaid"
 
-    EditorGui := Gui("+AlwaysOnTop -MaximizeBox", "Gamemode Editor — DenniXD ATS V2.4.2")
+    EditorGui := Gui("+AlwaysOnTop -MaximizeBox", "Gamemode Editor — DenniXD ATS V2.4.3")
     EditorGui.BackColor := "111111"
     EditorGui.OnEvent("Close", (*) => CloseSequenceEditor())
 
@@ -2906,7 +2925,7 @@ EditorCaptureMouse() {
     if (!IsSet(EditorRecording) || !EditorRecording || !EditorOpen)
         return
     MouseGetPos(&mx, &my, &mWin)
-    edWin := WinExist("Gamemode Editor — DenniXD ATS V2.4.2")
+    edWin := WinExist("Gamemode Editor — DenniXD ATS V2.4.3")
     if (edWin && mWin == edWin)
         return
     EditorSteps.Push(Map("type","click","x",mx,"y",my,"dur",80))
@@ -3156,7 +3175,7 @@ SaveEditorSequence() {
 ; Writes multiple slot keys into one file (preserves all slots)
 SaveMovementFileSlots(path, keys) {
     global CustomSeqs, SlotTriggers
-    out := "; DenniXD ATS V2.4.2 — saved from editor`n`n"
+    out := "; DenniXD ATS V2.4.3 — saved from editor`n`n"
     for slotKey in keys {
         if (!CustomSeqs.Has(slotKey))
             continue
