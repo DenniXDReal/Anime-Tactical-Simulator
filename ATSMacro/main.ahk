@@ -15,7 +15,7 @@ SetTimer(CheckForUpdates, -1500)
 SetDefaultMouseSpeed(0)
 CoordMode("Mouse", "Screen")
 ; ================================================================
-;   DenniXD ATS MACRO V2.3.5 — Combined Double Dungeon + Abandon Village
+;   DenniXD ATS MACRO V2.3.6 — Combined Double Dungeon + Abandon Village
 ; ================================================================
 ; ---------------- INITIALIZE FILES ----------------
 InitFiles() {
@@ -23,11 +23,11 @@ InitFiles() {
     seqPath := A_ScriptDir "\Sequences.txt"
     ; Create Settings.ini with defaults if missing
     if (!FileExist(iniPath)) {
-        FileAppend("[Settings]`nWebhook=`nPSLink=`nUIColor=1A1A1A`n", iniPath, "UTF-8")
+        FileAppend("[Settings]`nWebhook=`nPSLink=`nUIColor=1A1A1A`nUserSpeed=33`nCreatorSpeed=33`n", iniPath, "UTF-8")
     }
     ; Create empty Sequences.txt if missing
     if (!FileExist(seqPath)) {
-        FileAppend("; DenniXD ATS Macro V2.3.5 - Sequences`n; Auto-generated on first run`n", seqPath, "UTF-8")
+        FileAppend("; DenniXD ATS Macro V2.3.6 - Sequences`n; Auto-generated on first run`n", seqPath, "UTF-8")
     }
 }
 InitFiles()
@@ -35,12 +35,17 @@ InitFiles()
 ; ---------------- INITIALIZE SETTINGS ----------------
 global IniFile        := A_ScriptDir "\Settings.ini"
 global DiscordWebhook := IniRead(IniFile, "Settings", "Webhook", "")
-global MacroVersion      := "2.3.5"
+global MacroVersion      := "2.3.6"
+global CreatorSpeed      := 33      ; macro creator's in-game speed (do not change)
+global UserSpeed         := 33      ; user's in-game speed (set in Settings)
+global SpeedScale        := 1.0     ; calculated as CreatorSpeed / UserSpeed
 global UpdateAttempted   := false  ; prevents re-checking every cycle
 global RepoOwner      := "DenniXDReal"
 global RepoName       := "Anime-Tactical-Simulator"
 global RawBase        := "https://raw.githubusercontent.com/" . RepoOwner . "/" . RepoName . "/main/ATSMacro/"
 global PrivateServer  := IniRead(IniFile, "Settings", "PSLink",  "")
+global UserSpeed      := Integer(IniRead(IniFile, "Settings", "UserSpeed", "33"))
+global CreatorSpeed   := Integer(IniRead(IniFile, "Settings", "CreatorSpeed", "33"))
 global CustomColor    := IniRead(IniFile, "Settings", "UIColor", "1A1A1A")
 global Running         := false
 global DemonRuns       := 0
@@ -128,6 +133,7 @@ global Text5  := "|<>E34D4B-323232$71.00000000000000000000000000000000000000000z
 global Text4  := "|<>E5514E-323232$71.00000000000000000U80000000003lw0000000007Xs000000000D7k000000000yDU000000001wT0000000003ky0000000007Vw000000000T3s000000000y7k000000001zzU000000003zz0000000007zy000000000Dzw00000000003s00000000007k0000000000DU0000000000T00000000000Q00000000000s0000000000000000000000000000000000000000000000000001"
 global Text2  := "|<>DD4441-323232$71.00000000000000000000000000000D00000000001zU0000000007zU000000000TzU000000001zz0000000003sT0000000007US000000000D0w000000000S3s0000000000Dk0000000000z00000000003y0000000000Ts0000000001z0000000000Dw0000000000Tk0000000001zzk000000003zzU000000007zz0000000007zw0000000000000000000000000000000000000001"
 global Text1  := "|<>DF4744-323232$71.00000000000000000000000000000000000000000000000000000100000000000DU0000000000z00000000003y0000000000Dw0000000000zs0000000001zk0000000003zU0000000003T00000000000y00000000001w00000000003s00000000007k0000000000DU0000000000T00000000000y00000000001w00000000003s00000000003k0000000000700000000000000001"
+global TextAVActive  := "|<>3F3F3F-0.90$71.000000000000000000000000000000000000Dzs0000003U0zzk000000701zzU000000C003U0000000Q0070400821ks00C7yDwsCDtk00QDwzvkwznU00sTnznlvvr001ks7bXbb7i003VkCD7jDzQ0073UQS7wTws00C70zwDkw1s00QC1zsDVzns00sQ1zkS1zbk01ks1vUQ1z7U00000000000000000000000000000000000000000000000000000000000000000000000000000000001"
 global TextNightmare := "|<>FFB447-323232$141.00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000E000U000000000000000000D000S0000000000000003s1tw003s01k000000000000T0DD000T00S0000000000003w1sE003s03k000000000000TkD0000T00S0000000000003z1s0003s03k000000000000TsD70SQTS1zstsS0DC7D0zU3zVtsDzXzwDzDzbs3ztzwTy0TyDDXzwTzlztzzzUzzDzbzs3vttwTzXzyDzDzzwDztzszT0TDDDblwTbsS1yzjXwzDUDVs3tztww7XsT3kDXsyT3tw1wD0T7zDbUwT1sS1wT7nkTDUDzs3sTtww7XsD3kDXsyS3tw1zz0T1zDblwT1sS1wT7nsTDUDU03sDtwTzXsD3sDXsyTztw1w00T0zDXzwT1sTtwT7lzzDU7zk3s3tsDzXkD1zDXsy7ztw0zz0S0DD0ywS1s7tsC3UTzD03zs1k0ks07Vk60C71kQ0kks07w0000000w000000000000000000000ADU000000000000000000001zs000000000000000000000Tz0000000000000000000000zU00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000004"
 global TextMedium    := "|<>FFBC4C-323232$141.0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000620000000000000000000001ts0000000000000DU0S0000DDU0000000000001w07k0001ts0000000000000Dk1y0000D200000000000001z0Tk0001s00000000000000Dw3y0000D000000000000001zkzkDs1tssQ3lnkw0000000DyDy7zUTzD7USTzDk0000001zvzlzy7ztwy3nzzz0000000DjzSDrlzzDbkSTzzs0000001wznnsSDbtwy3nxzT0000000DbwST3nsTDbkST7lw0000001wT3nzyS3twy3nsyDU000000DVsSTznkTDbkST7lw0000001w43ns0T3twS7nsyDU000000DU0ST01zzD3zyT7lw0000001s03lyQDztsTznky7U000000D00S7zkzzD1zyS7kw0000000s03kTy3zss7vlkQ70000000200A0z024604AA10E0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000004"
 global TextEasy      := "|<>FFD258-323232$141.00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000zw000000000000000000000Tzs000000000000000000007zz000000000000000000000zzs000000000000000000007zz000000000000000000000y00000000000000000000007k00wsDsQ1k0000000000000y00DzXzrUT00000000000007zs3zwTwy3k0000000000000zz0zzXV3ky00000000000007zsDnwQ0T7U0000000000000zz1sDXw1sw00000000000007k0D1wTwDj00000000000000w01sDVzkzs00000000000003U0DVw1y3z00000000000000S00yTU1kTk00000000000003zz7zwQS1w0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000004"
@@ -137,7 +143,7 @@ global Text0  := "|<>D83A37-323232$71.00000000000000000000000000000T00000000003z
 ; ================================================================
 ;   GUI SETUP  —  Modern dark card layout
 ; ================================================================
-MyGui := Gui("+AlwaysOnTop -Caption +Border", "DenniXD ATS Macro V2.3.5")
+MyGui := Gui("+AlwaysOnTop -Caption +Border", "DenniXD ATS Macro V2.3.6")
 MyGui.BackColor := "0D0D0D"
 OnMessage(0x0201, WM_LBUTTONDOWN)
 WM_LBUTTONDOWN(wParam, lParam, msg, hwnd) {
@@ -155,7 +161,7 @@ MyGui.AddText("x0 y0 w430 h3 Background7B2FFF", "")   ; purple accent strip
 MyGui.SetFont("s13 cFFFFFF Bold", "Segoe UI")
 MyGui.AddText("x16 y14 w300", "DenniXD ATS MACRO")
 MyGui.SetFont("s8 c555555 Norm", "Segoe UI")
-MyGui.AddText("x16 y32 w300", "V2.3.5  ·  Double Dungeon + Abandon Village")
+MyGui.AddText("x16 y32 w300", "V2.3.6  ·  Double Dungeon + Abandon Village")
 
 ; Close [ X ]
 MyGui.SetFont("s10 cFF4455 Bold", "Segoe UI")
@@ -316,6 +322,17 @@ MyGui.SetFont("s9 cFFFFFF Norm", "Segoe UI")
 global EditPS  := MyGui.AddEdit("x16 yp+16 w348 h24 Hidden Background1A1A1A", PrivateServer)
 
 MyGui.SetFont("s8 c7B2FFF Bold", "Segoe UI")
+global TextSpeedHeader := MyGui.AddText("x16 yp+32 w348 Hidden", "SPEED SCALING")
+MyGui.SetFont("s8 cAAAAAA Norm", "Segoe UI")
+global TextCreatorSpeed := MyGui.AddText("x16 yp+14 w160 Hidden", "Creator Speed (default)")
+global TextUserSpeed    := MyGui.AddText("x196 yp w160 Hidden", "Your Speed")
+MyGui.SetFont("s9 cFFFFFF Norm", "Segoe UI")
+global EditCreatorSpeed := MyGui.AddEdit("x16 yp+16 w160 h24 Hidden Background1A1A1A", CreatorSpeed)
+global EditSpeed        := MyGui.AddEdit("x196 yp w160 h24 Hidden Background1A1A1A", UserSpeed)
+MyGui.SetFont("s8 cAAAAAA Norm", "Segoe UI")
+MyGui.AddText("x16 yp+28 w348 Hidden", "Scale = Creator ÷ Your Speed  (33÷30 = 1.10x slower)")
+
+MyGui.SetFont("s8 c7B2FFF Bold", "Segoe UI")
 global TextCol := MyGui.AddText("x16 yp+32 w348 Hidden", "UI ACCENT COLOR (HEX)")
 MyGui.SetFont("s9 cFFFFFF Norm", "Segoe UI")
 global EditCol := MyGui.AddEdit("x16 yp+16 w100 h24 Hidden Background1A1A1A", CustomColor)
@@ -384,6 +401,7 @@ StartMacro() {
     SessionStart            := A_TickCount
     CurrentRaidStep         := 0
     HasSummonedThisSession  := false
+    UpdateSpeedScale()  ; calculate speed scalar from user speed setting
     UpdateSearchArea()  ; calculate search region from current Roblox window size
     GuiStatus.Text  := "● Running"
     GuiStatus.Opt("c00FF99")
@@ -655,8 +673,29 @@ RunDemonSlayer() {
     ; Text2 already confirmed — run Step1 immediately
     GuiStatus.Text := "Abandon Village — Step 1"
     RunCustomOrDefault("AV_Step1",      (*) => 0)
-    ; ── Wait for raid completion (Text0 = 0 enemies) ──
-    CompletionDeadline := A_TickCount + 120000  ; 2 min max safety
+    ; ── Wait for completion ──
+    ; Step 1: Confirm TextAVActive is visible (stage is running)
+    GuiStatus.Text := "Abandon Village — Waiting for stage to activate..."
+    AVActiveDeadline := A_TickCount + 60000
+    Loop {
+        if (!Running)
+            return
+        if (A_TickCount > AVActiveDeadline) {
+            GuiStatus.Text := "Abandon Village — Stage never activated, returning..."
+            CaptureAndSend(false)
+            ReturnToLobby()
+            return
+        }
+        if GetFindText().FindText(&FoundX, &FoundY, 27, 577, 127, 627, 0.15, 0.15, TextAVActive) {
+            GuiStatus.Text := "Abandon Village — Stage active, running..."
+            break
+        }
+        Sleep(500)
+    }
+
+    ; Step 2: Watch for TextLoaded (end screen) = win condition
+    ; TextLoaded appears at 27,577->127,627 same as rejoin game load detection
+    CompletionDeadline := A_TickCount + 300000  ; 5 min max safety
     Loop {
         if (!Running)
             return
@@ -666,13 +705,18 @@ RunDemonSlayer() {
             ReturnToLobby()
             return
         }
-        if GetFindText().FindText(&FoundX, &FoundY, StartX, StartY, EndX, EndY, 0.15, 0.15, Text0) {
-            DemonRuns += 1
-            GuiStatus.Text := "● Done  [AV: " . DemonRuns . "]"
-            Sleep(5000)
-            CaptureAndSend(false)
-            ReturnToLobby()
-            return
+        ; Win condition: end screen detected = stage cleared
+        if GetFindText().FindText(&FoundX, &FoundY, 27, 577, 127, 627, 0, 0, TextLoaded) {
+            Sleep(1000)
+            ; Double check its still there
+            if GetFindText().FindText(&FoundX, &FoundY, 27, 577, 127, 627, 0, 0, TextLoaded) {
+                DemonRuns += 1
+                GuiStatus.Text := "● Done  [AV: " . DemonRuns . "]"
+                Sleep(5000)
+                CaptureAndSend(false)
+                ReturnToLobby()
+                return
+            }
         }
         Sleep(1000)
     }
@@ -898,6 +942,13 @@ CheckDifficultyDetected() {
     if GetFindText().FindText(&fx, &fy, x1, y1, x2, y2, 0.15, 0.15, TextHard)
         return true
     return false
+}
+
+UpdateSpeedScale() {
+    global CreatorSpeed, UserSpeed, SpeedScale
+    if (UserSpeed <= 0)
+        UserSpeed := CreatorSpeed
+    SpeedScale := CreatorSpeed / UserSpeed
 }
 
 UpdateSearchArea() {
@@ -1147,7 +1198,8 @@ PlaySequence(steps) {
             return
         }
         if (step["type"] == "key") {
-            Send("{" step["key"] " down}"), Sleep(step["dur"]), Send("{" step["key"] " up}")
+            scaledDur := Max(10, Round(step["dur"] * SpeedScale))
+            Send("{" step["key"] " down}"), Sleep(scaledDur), Send("{" step["key"] " up}")
         } else if (step["type"] == "click") {
             ; ARX FixClick method — nudge + relative click for 100% hit rate
             MouseMove(step["x"], step["y"])
@@ -1155,9 +1207,9 @@ PlaySequence(steps) {
             MouseClick("Left", -1, 0,,,, "R")
             Sleep(50)
             if (step.Has("dur") && step["dur"] > 0)
-                Sleep(step["dur"])
+                Sleep(Round(step["dur"] * SpeedScale))
         } else if (step["type"] == "sleep") {
-            Sleep(step["dur"])
+            Sleep(Max(10, Round(step["dur"] * SpeedScale)))
         } else if (step["type"] == "triggerpoint") {
             ; Wait until enemy count matches before continuing
             targetCount := step["count"]  ; e.g. 8
@@ -1346,7 +1398,7 @@ TestJoinPS() {
 ToggleSettings(*) {
     global SettingsVisible
     SettingsVisible := !SettingsVisible
-    for ctrl in [TextWeb, EditWeb, TextPS, EditPS, TextCol, EditCol, BtnSave, BtnUpdate, BtnForceUpdate, BtnTestSS, BtnDebug, BtnTestJoin, BtnTestWebhook, BtnLoadSeqFile, LblSeqFile, LblMovFiles, BtnReloadCustom, BtnReloadRaids, BtnReloadSummon, LblSummonSec, DdlSummonMap, ChkSummonActive] {
+    for ctrl in [TextWeb, EditWeb, TextPS, EditPS, TextSpeedHeader, TextCreatorSpeed, TextUserSpeed, EditCreatorSpeed, EditSpeed, TextCol, EditCol, BtnSave, BtnUpdate, BtnForceUpdate, BtnTestSS, BtnDebug, BtnTestJoin, BtnTestWebhook, BtnLoadSeqFile, LblSeqFile, LblMovFiles, BtnReloadCustom, BtnReloadRaids, BtnReloadSummon, LblSummonSec, DdlSummonMap, ChkSummonActive] {
         ctrl.Visible := SettingsVisible
     }
     MyGui.Show(SettingsVisible ? "h960" : "h474")
@@ -1385,10 +1437,17 @@ SaveSettings(*) {
     global DiscordWebhook, PrivateServer, CustomColor
     DiscordWebhook  := EditWeb.Value
     PrivateServer   := EditPS.Value
+    CreatorSpeed       := Integer(EditCreatorSpeed.Value) > 0 ? Integer(EditCreatorSpeed.Value) : 33
+    UserSpeed          := Integer(EditSpeed.Value) > 0 ? Integer(EditSpeed.Value) : 33
+    EditCreatorSpeed.Value := CreatorSpeed
+    EditSpeed.Value        := UserSpeed
+    UpdateSpeedScale()
     CustomColor     := EditCol.Value
     MyGui.BackColor := CustomColor
     IniWrite(DiscordWebhook, IniFile, "Settings", "Webhook")
     IniWrite(PrivateServer,  IniFile, "Settings", "PSLink")
+    IniWrite(CreatorSpeed,   IniFile, "Settings", "CreatorSpeed")
+    IniWrite(UserSpeed,      IniFile, "Settings", "UserSpeed")
     IniWrite(CustomColor,    IniFile, "Settings", "UIColor")
     ToggleSettings()
 }
@@ -1473,7 +1532,7 @@ CaptureAndSend(IsManualTest := false) {
     Duration := h . "h " . m . "m " . s . "s"
     global RiftRuns, RaidRuns, RaidType, CustomRuns, CustomRunName
     currStatus := MacroPaused ? "⏸ Paused" : "● Running"
-    Payload := '{"embeds": [{"title": "DenniXD ATS Macro V2.3.5","color": 8323327,'
+    Payload := '{"embeds": [{"title": "DenniXD ATS Macro V2.3.6","color": 8323327,'
              . '"image": {"url": "attachment://ss.png"},'
              . '"fields": ['
              . '{"name": "🗡 Abandon Village",  "value": "' . DemonRuns   . ' runs", "inline": true},'
@@ -1484,7 +1543,7 @@ CaptureAndSend(IsManualTest := false) {
              . '{"name": "🔄 Rejoined",        "value": "' . RejoinCount . ' times", "inline": true},'
              . '{"name": "⏱ Uptime",          "value": "' . Duration    . '", "inline": true},'
              . '{"name": "📊 Status",          "value": "' . currStatus  . '", "inline": true}'
-             . '],"footer": {"text": "DenniXD ATS V2.3.5  ·  ' . FormatTime(, "HH:mm:ss") . '"}}]}'
+             . '],"footer": {"text": "DenniXD ATS V2.3.6  ·  ' . FormatTime(, "HH:mm:ss") . '"}}]}'
     try {
         FileOpen(JsonPath, "w", "UTF-8").Write(Payload)
         RunWait('curl.exe -s -F "payload_json=<' JsonPath '" -F "file=@' SSPath '" "' EditWeb.Value '"', , "Hide")
@@ -1557,7 +1616,7 @@ GenerateDefaultFiles() {
     global FolderCustom, FolderRaids, FolderSummon
 
     hdr := "; ================================================================`n"
-          . "; DenniXD ATS Macro V2.3.5 — Movement File (auto-generated)`n"
+          . "; DenniXD ATS Macro V2.3.6 — Movement File (auto-generated)`n"
           . "; Edit steps freely. Reload via Settings > Movement Files.`n"
           . "; Format:  SlotKey|key|keyname|ms  /  |click|x|y|ms  /  |sleep|ms`n"
           . "; ================================================================`n`n"
@@ -2227,7 +2286,7 @@ OpenSequenceEditor() {
     EditorGamemode := "DD"
     EditorSlotKey  := "DD_EnterRaid"
 
-    EditorGui := Gui("+AlwaysOnTop -MaximizeBox", "Gamemode Editor — DenniXD ATS V2.3.5")
+    EditorGui := Gui("+AlwaysOnTop -MaximizeBox", "Gamemode Editor — DenniXD ATS V2.3.6")
     EditorGui.BackColor := "111111"
     EditorGui.OnEvent("Close", (*) => CloseSequenceEditor())
 
@@ -2589,7 +2648,7 @@ EditorCaptureMouse() {
     if (!IsSet(EditorRecording) || !EditorRecording || !EditorOpen)
         return
     MouseGetPos(&mx, &my, &mWin)
-    edWin := WinExist("Gamemode Editor — DenniXD ATS V2.3.5")
+    edWin := WinExist("Gamemode Editor — DenniXD ATS V2.3.6")
     if (edWin && mWin == edWin)
         return
     EditorSteps.Push(Map("type","click","x",mx,"y",my,"dur",80))
@@ -2818,7 +2877,7 @@ SaveEditorSequence() {
 ; Writes multiple slot keys into one file (preserves all slots)
 SaveMovementFileSlots(path, keys) {
     global CustomSeqs, SlotTriggers
-    out := "; DenniXD ATS V2.3.5 — saved from editor`n`n"
+    out := "; DenniXD ATS V2.3.6 — saved from editor`n`n"
     for slotKey in keys {
         if (!CustomSeqs.Has(slotKey))
             continue
