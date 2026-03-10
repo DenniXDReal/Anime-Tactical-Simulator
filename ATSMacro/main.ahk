@@ -15,7 +15,7 @@ SetTimer(CheckForUpdates, -1500)
 SetDefaultMouseSpeed(0)
 CoordMode("Mouse", "Screen")
 ; ================================================================
-;   DenniXD ATS MACRO V2.3.9 — Combined Double Dungeon + Abandon Village
+;   DenniXD ATS MACRO V2.4.0 — Combined Double Dungeon + Abandon Village
 ; ================================================================
 ; ---------------- INITIALIZE FILES ----------------
 InitFiles() {
@@ -27,7 +27,7 @@ InitFiles() {
     }
     ; Create empty Sequences.txt if missing
     if (!FileExist(seqPath)) {
-        FileAppend("; DenniXD ATS Macro V2.3.9 - Sequences`n; Auto-generated on first run`n", seqPath, "UTF-8")
+        FileAppend("; DenniXD ATS Macro V2.4.0 - Sequences`n; Auto-generated on first run`n", seqPath, "UTF-8")
     }
 }
 InitFiles()
@@ -35,7 +35,7 @@ InitFiles()
 ; ---------------- INITIALIZE SETTINGS ----------------
 global IniFile        := A_ScriptDir "\Settings.ini"
 global DiscordWebhook := IniRead(IniFile, "Settings", "Webhook", "")
-global MacroVersion      := "2.3.9"
+global MacroVersion      := "2.4.0"
 global CreatorSpeed      := 33      ; macro creator's in-game speed (do not change)
 global UserSpeed         := 33      ; user's in-game speed (set in Settings)
 global SpeedScale        := 1.0     ; calculated as CreatorSpeed / UserSpeed
@@ -176,6 +176,7 @@ global Text6  := "|<>D83A36-323232$71.000000000000000000000000000000000000000003
 global Text5  := "|<>E34D4B-323232$71.00000000000000000000000000000000000000000zk0000000007zk000000000DzU000000000Tz0000000000zw0000000001s00000000003k0000000000Dw0000000000Ty0000000000zy0000000001zy0000000001vw00000000001s00000000003k00000000007U000000000wT0000000001zy0000000003zs0000000003zU0000000001w00000000000000000000000000001"
 global Text4  := "|<>E5514E-323232$71.00000000000000000U80000000003lw0000000007Xs000000000D7k000000000yDU000000001wT0000000003ky0000000007Vw000000000T3s000000000y7k000000001zzU000000003zz0000000007zy000000000Dzw00000000003s00000000007k0000000000DU0000000000T00000000000Q00000000000s0000000000000000000000000000000000000000000000000001"
 global Text2  := "|<>DD4441-323232$71.00000000000000000000000000000D00000000001zU0000000007zU000000000TzU000000001zz0000000003sT0000000007US000000000D0w000000000S3s0000000000Dk0000000000z00000000003y0000000000Ts0000000001z0000000000Dw0000000000Tk0000000001zzk000000003zzU000000007zz0000000007zw0000000000000000000000000000000000000001"
+global Text3  := ""  ; TODO: capture 3-enemy count pattern with FindText tool
 global Text1  := "|<>DF4744-323232$71.00000000000000000000000000000000000000000000000000000100000000000DU0000000000z00000000003y0000000000Dw0000000000zs0000000001zk0000000003zU0000000003T00000000000y00000000001w00000000003s00000000007k0000000000DU0000000000T00000000000y00000000001w00000000003s00000000003k0000000000700000000000000001"
 global TextAVActive  := "|<>3F3F3F-0.90$71.000000000000000000000000000000000000Dzs0000003U0zzk000000701zzU000000C003U0000000Q0070400821ks00C7yDwsCDtk00QDwzvkwznU00sTnznlvvr001ks7bXbb7i003VkCD7jDzQ0073UQS7wTws00C70zwDkw1s00QC1zsDVzns00sQ1zkS1zbk01ks1vUQ1z7U00000000000000000000000000000000000000000000000000000000000000000000000000000000001"
 global TextNightmare := "|<>FFB447-323232$141.00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000E000U000000000000000000D000S0000000000000003s1tw003s01k000000000000T0DD000T00S0000000000003w1sE003s03k000000000000TkD0000T00S0000000000003z1s0003s03k000000000000TsD70SQTS1zstsS0DC7D0zU3zVtsDzXzwDzDzbs3ztzwTy0TyDDXzwTzlztzzzUzzDzbzs3vttwTzXzyDzDzzwDztzszT0TDDDblwTbsS1yzjXwzDUDVs3tztww7XsT3kDXsyT3tw1wD0T7zDbUwT1sS1wT7nkTDUDzs3sTtww7XsD3kDXsyS3tw1zz0T1zDblwT1sS1wT7nsTDUDU03sDtwTzXsD3sDXsyTztw1w00T0zDXzwT1sTtwT7lzzDU7zk3s3tsDzXkD1zDXsy7ztw0zz0S0DD0ywS1s7tsC3UTzD03zs1k0ks07Vk60C71kQ0kks07w0000000w000000000000000000000ADU000000000000000000001zs000000000000000000000Tz0000000000000000000000zU00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000004"
@@ -187,7 +188,7 @@ global Text0  := "|<>D83A37-323232$71.00000000000000000000000000000T00000000003z
 ; ================================================================
 ;   GUI SETUP  —  Modern dark card layout
 ; ================================================================
-MyGui := Gui("+AlwaysOnTop -Caption +Border", "DenniXD ATS Macro V2.3.9")
+MyGui := Gui("+AlwaysOnTop -Caption +Border", "DenniXD ATS Macro V2.4.0")
 MyGui.BackColor := "0D0D0D"
 OnMessage(0x0201, WM_LBUTTONDOWN)
 WM_LBUTTONDOWN(wParam, lParam, msg, hwnd) {
@@ -205,7 +206,7 @@ MyGui.AddText("x0 y0 w430 h3 Background7B2FFF", "")   ; purple accent strip
 MyGui.SetFont("s13 cFFFFFF Bold", "Segoe UI")
 MyGui.AddText("x16 y14 w300", "DenniXD ATS MACRO")
 MyGui.SetFont("s8 c555555 Norm", "Segoe UI")
-MyGui.AddText("x16 y32 w300", "V2.3.9  ·  Double Dungeon + Abandon Village")
+MyGui.AddText("x16 y32 w300", "V2.4.0  ·  Double Dungeon + Abandon Village")
 
 ; Close [ X ]
 MyGui.SetFont("s10 cFF4455 Bold", "Segoe UI")
@@ -524,8 +525,9 @@ MainLoop() {
     if (MacroLock)
         return
 
-    ; Safety timeout — force rejoin if DD takes longer than 5 minutes
-    if (CurrentRaidStep > 0 && RaidStartTime > 0 && (A_TickCount - RaidStartTime > 300000)) {
+    ; Safety timeout — force rejoin if DD takes longer than 30 minutes
+    ; (large slot counts with long sequences can easily exceed 5 min)
+    if (CurrentRaidStep > 0 && RaidStartTime > 0 && (A_TickCount - RaidStartTime > 1800000)) {
         ForceRejoin()
         return
     }
@@ -769,108 +771,184 @@ RunDemonSlayer() {
     }
 }
 RunDoubleDungeon() {
+    ; CurrentRaidStep: 0 = not started, 1 = entered (waiting), 2+ = slot index into GM_DD
     global Running, CurrentRaidStep, DungeonRuns, RaidStartTime
-    global SlotTriggers, GM_DD, StartX, StartY, EndX, EndY
+    global SlotTriggers, GM_DD, CustomSeqs, StartX, StartY, EndX, EndY
     if (!Running)
         return
 
-    ; —— Step 0: Enter the raid ————————————————————————————
+    slots := GM_DD  ; live reference — reflects any added/removed slots
+
+    ; —— Not started: run entry slot then wait for first trigger ————————
     if (CurrentRaidStep == 0) {
         GuiStatus.Text := "Double Dungeon — Entering"
-        RunCustomOrDefault("DD_EnterRaid", (*) => 0)
+        RunCustomOrDefault(slots[1]["key"], (*) => 0)
         RaidStartTime   := A_TickCount
-        CurrentRaidStep := 0.5
-        GuiStatus.Text := "Double Dungeon — Waiting for enemies..."
+        CurrentRaidStep := 1  ; marks entry done, next = slot index 2
+
+        ; Wait for slot 2 trigger to confirm we are inside
+        if (slots.Length < 2) {
+            ; Only entry slot exists — run complete
+            DungeonRuns += 1
+            GuiStatus.Text := "● Done  [DD: " . DungeonRuns . "]"
+            Sleep(5000)
+            CaptureAndSend(false)
+            ReturnToLobby()
+            CurrentRaidStep := 0
+            return
+        }
+        slot2    := slots[2]
+        trig2    := SlotTriggers.Has(slot2["key"]) ? SlotTriggers[slot2["key"]] : slot2["trigger"]
+        textVar2 := DDResolveTextVar(trig2)
+        GuiStatus.Text := "Double Dungeon — Waiting to enter stage..."
         EntryDeadline := A_TickCount + 90000
-        ; Get entry trigger count from Step1 SlotTrigger (default 12)
-        step1Trig  := SlotTriggers.Has("DD_Step1") ? SlotTriggers["DD_Step1"] : "12 enemies"
-        step1Count := Integer(RegExReplace(step1Trig, "[^\d]", ""))
-        if (step1Count == 0)
-            step1Count := 12
-        step1TV := "Text" step1Count
         Loop {
             if (!Running)
                 return
-            if (A_TickCount > EntryDeadline) {
-                if (CheckDifficultyDetected()) {
-                    GuiStatus.Text := "Double Dungeon — Difficulty detected, continuing..."
-                    break
-                }
-                GuiStatus.Text := "Double Dungeon — Timed out, restarting cycle"
-                CurrentRaidStep := 0
-                return
+            ; Direct Text12 check (12 enemies = original entry confirm method)
+            if GetFindText().FindText(&FoundX, &FoundY, StartX, StartY, EndX, EndY, 0.15, 0.15, Text12) {
+                GuiStatus.Text := "Double Dungeon — Stage confirmed (12 enemies)"
+                break
             }
+            ; Difficulty text = confirmed inside (Nightmare / Hard / Medium / Easy)
             if (CheckDifficultyDetected()) {
                 GuiStatus.Text := "Double Dungeon — Stage confirmed via difficulty"
                 break
             }
-            try {
-                if GetFindText().FindText(&FoundX, &FoundY, StartX, StartY, EndX, EndY, 0.15, 0.15, %step1TV%) {
-                    GuiStatus.Text := "Double Dungeon — Stage confirmed (" step1Count " enemies)"
-                    break
+            ; Specific trigger enemy count visible
+            if (textVar2 != "") {
+                try {
+                    if GetFindText().FindText(&FoundX, &FoundY, StartX, StartY, EndX, EndY, 0.15, 0.15, %textVar2%) {
+                        GuiStatus.Text := "Double Dungeon — Stage confirmed (" trig2 ")"
+                        break
+                    }
                 }
             }
-            Sleep(500)
-        }
-        return
-    }
-
-    ; —— Steps 0.5 onward: fully driven by SlotTriggers ———————————————
-    slots    := GM_DD
-    slotIdx  := (CurrentRaidStep == 0.5) ? 2 : Integer(CurrentRaidStep) + 1
-    if (slotIdx < 2 || slotIdx > slots.Length)
-        return
-
-    slot    := slots[slotIdx]
-    key     := slot["key"]
-    trigger := SlotTriggers.Has(key) ? SlotTriggers[key] : slot["trigger"]
-
-    ; Resolve trigger to FindText variable name
-    textVar := ""
-    if (trigger == "0 enemies") {
-        textVar := "Text0"
-    } else if (trigger != "—" && trigger != "— (manual/always)" && trigger != "") {
-        countStr := RegExReplace(trigger, "[^\d]", "")
-        if (countStr != "")
-            textVar := "Text" countStr
-    }
-
-    ; Check if trigger condition is met
-    triggered := false
-    if (textVar == "") {
-        triggered := true  ; no enemy trigger — run immediately
-    } else {
-        try {
-            if GetFindText().FindText(&FoundX, &FoundY, StartX, StartY, EndX, EndY, 0.15, 0.15, %textVar%) {
-                Sleep(200)
-                if GetFindText().FindText(&FoundX, &FoundY, StartX, StartY, EndX, EndY, 0.15, 0.15, %textVar%)
-                    triggered := true
+            ; Any enemy count visible = we are inside
+            if (DDAnyStageSeen(StartX, StartY, EndX, EndY)) {
+                GuiStatus.Text := "Double Dungeon — Stage confirmed (enemies visible)"
+                break
             }
+            if (A_TickCount > EntryDeadline) {
+                GuiStatus.Text := "Double Dungeon — Timed out waiting for entry, restarting"
+                CurrentRaidStep := 0
+                return
+            }
+            Sleep(400)
         }
-    }
-
-    if (!triggered) {
-        GuiStatus.Text := "Double Dungeon (Step " . CurrentRaidStep . " — waiting for " trigger ")"
         return
     }
 
-    ; Run the slot sequence
-    GuiStatus.Text := "Double Dungeon — " slot["label"]
-    RunCustomOrDefault(key, (*) => 0)
-
-    ; Advance to next slot
-    nextIdx := slotIdx + 1
-    if (nextIdx > slots.Length) {
-        ; All slots done — run complete
+    ; —— CurrentRaidStep 1 = run slot 2 onward ———————————————
+    ; Walk through all remaining slots sequentially (slot index 2 to end)
+    ; CurrentRaidStep == 1 means we just entered; start from slot 2
+    startIdx := (CurrentRaidStep == 1) ? 2 : CurrentRaidStep
+    if (startIdx > slots.Length) {
+        ; Somehow past the end — finish up
         DungeonRuns += 1
-        CurrentRaidStep := 0
         GuiStatus.Text := "● Done  [DD: " . DungeonRuns . "]"
         Sleep(5000)
         CaptureAndSend(false)
         ReturnToLobby()
+        CurrentRaidStep := 0
         return
     }
-    CurrentRaidStep := (nextIdx == 2) ? 0.5 : Float(nextIdx - 1)
+
+    Loop {
+        if (!Running)
+            return
+
+        idx  := (CurrentRaidStep == 1) ? 2 : CurrentRaidStep
+        if (idx > slots.Length)
+            break
+
+        slot    := slots[idx]
+        key     := slot["key"]
+        trigger := SlotTriggers.Has(key) ? SlotTriggers[key] : slot["trigger"]
+        textVar := DDResolveTextVar(trigger)
+
+        ; Wait for trigger
+        if (textVar != "") {
+            ; Check if the text pattern variable is actually defined
+            patternExists := false
+            try {
+                val := %textVar%
+                patternExists := (val != "")
+            }
+            if (!patternExists) {
+                GuiStatus.Text := "Double Dungeon — WARNING: no pattern for '" trigger "' — skipping wait"
+                Sleep(1000)
+            } else {
+                GuiStatus.Text := "Double Dungeon — " slot["label"] " — waiting for " trigger "..."
+                stepDeadline := A_TickCount + 90000
+                Loop {
+                    if (!Running)
+                        return
+                    if (A_TickCount > stepDeadline) {
+                        GuiStatus.Text := "Double Dungeon — Timeout on " slot["label"] ", skipping"
+                        break
+                    }
+                    try {
+                        if GetFindText().FindText(&FoundX, &FoundY, StartX, StartY, EndX, EndY, 0.15, 0.15, %textVar%) {
+                            Sleep(200)
+                            if GetFindText().FindText(&FoundX, &FoundY, StartX, StartY, EndX, EndY, 0.15, 0.15, %textVar%)
+                                break
+                        }
+                    }
+                    Sleep(300)
+                }
+                if (!Running)
+                    return
+            }
+        }
+
+        ; Run the sequence
+        GuiStatus.Text := "Double Dungeon — Running " slot["label"]
+        RunCustomOrDefault(key, (*) => 0)
+
+        ; Pause: sequence total duration + 1s
+        seqDur  := CustomSeqs.Has(key) ? CalcSeqDuration(CustomSeqs[key]) : 0
+        pauseMs := seqDur + 1000
+        GuiStatus.Text := "Double Dungeon — " slot["label"] " done — pausing " Round(pauseMs/1000, 1) "s"
+        Sleep(pauseMs)
+
+        ; Advance
+        CurrentRaidStep := idx + 1
+        if (CurrentRaidStep > slots.Length)
+            break
+    }
+
+    if (!Running)
+        return
+
+    ; All slots done — run complete
+    DungeonRuns += 1
+    CurrentRaidStep := 0
+    GuiStatus.Text := "● Done  [DD: " . DungeonRuns . "]"
+    Sleep(5000)
+    CaptureAndSend(false)
+    ReturnToLobby()
+}
+
+DDResolveTextVar(trigger) {
+    if (trigger == "0 enemies")
+        return "Text0"
+    if (trigger == "—" || trigger == "— (manual/always)" || trigger == "" || trigger == "After entry")
+        return ""
+    ; Extract only the FIRST number in the trigger string (handles "10 enemies (2nd)" etc)
+    if RegExMatch(trigger, "\d+", &m)
+        return "Text" m[]
+    return ""
+}
+
+; Returns true if any enemy count text (0-20) is visible on screen = we are inside a stage
+DDAnyStageSeen(x1, y1, x2, y2) {
+    global Text0, Text1, Text2, Text4, Text5, Text6, Text7, Text8, Text9, Text10, Text11, Text12
+    for tv in [Text1, Text2, Text4, Text5, Text6, Text7, Text8, Text9, Text10, Text11, Text12, Text0] {
+        if GetFindText().FindText(&fx, &fy, x1, y1, x2, y2, 0.15, 0.15, tv)
+            return true
+    }
+    return false
 }
 ; ================================================================
 ;   DOUBLE DUNGEON — MOVEMENT FUNCTIONS
@@ -1599,7 +1677,7 @@ CaptureAndSend(IsManualTest := false) {
     Duration := h . "h " . m . "m " . s . "s"
     global RiftRuns, RaidRuns, RaidType, CustomRuns, CustomRunName
     currStatus := MacroPaused ? "⏸ Paused" : "● Running"
-    Payload := '{"embeds": [{"title": "DenniXD ATS Macro V2.3.9","color": 8323327,'
+    Payload := '{"embeds": [{"title": "DenniXD ATS Macro V2.4.0","color": 8323327,'
              . '"image": {"url": "attachment://ss.png"},'
              . '"fields": ['
              . '{"name": "🗡 Abandon Village",  "value": "' . DemonRuns   . ' runs", "inline": true},'
@@ -1610,7 +1688,7 @@ CaptureAndSend(IsManualTest := false) {
              . '{"name": "🔄 Rejoined",        "value": "' . RejoinCount . ' times", "inline": true},'
              . '{"name": "⏱ Uptime",          "value": "' . Duration    . '", "inline": true},'
              . '{"name": "📊 Status",          "value": "' . currStatus  . '", "inline": true}'
-             . '],"footer": {"text": "DenniXD ATS V2.3.9  ·  ' . FormatTime(, "HH:mm:ss") . '"}}]}'
+             . '],"footer": {"text": "DenniXD ATS V2.4.0  ·  ' . FormatTime(, "HH:mm:ss") . '"}}]}'
     try {
         FileOpen(JsonPath, "w", "UTF-8").Write(Payload)
         RunWait('curl.exe -s -F "payload_json=<' JsonPath '" -F "file=@' SSPath '" "' EditWeb.Value '"', , "Hide")
@@ -1683,7 +1761,7 @@ GenerateDefaultFiles() {
     global FolderCustom, FolderRaids, FolderSummon
 
     hdr := "; ================================================================`n"
-          . "; DenniXD ATS Macro V2.3.9 — Movement File (auto-generated)`n"
+          . "; DenniXD ATS Macro V2.4.0 — Movement File (auto-generated)`n"
           . "; Edit steps freely. Reload via Settings > Movement Files.`n"
           . "; Format:  SlotKey|key|keyname|ms  /  |click|x|y|ms  /  |sleep|ms`n"
           . "; ================================================================`n`n"
@@ -2406,7 +2484,7 @@ OpenSequenceEditor() {
     EditorGamemode := "DD"
     EditorSlotKey  := "DD_EnterRaid"
 
-    EditorGui := Gui("+AlwaysOnTop -MaximizeBox", "Gamemode Editor — DenniXD ATS V2.3.9")
+    EditorGui := Gui("+AlwaysOnTop -MaximizeBox", "Gamemode Editor — DenniXD ATS V2.4.0")
     EditorGui.BackColor := "111111"
     EditorGui.OnEvent("Close", (*) => CloseSequenceEditor())
 
@@ -2778,7 +2856,7 @@ EditorCaptureMouse() {
     if (!IsSet(EditorRecording) || !EditorRecording || !EditorOpen)
         return
     MouseGetPos(&mx, &my, &mWin)
-    edWin := WinExist("Gamemode Editor — DenniXD ATS V2.3.9")
+    edWin := WinExist("Gamemode Editor — DenniXD ATS V2.4.0")
     if (edWin && mWin == edWin)
         return
     EditorSteps.Push(Map("type","click","x",mx,"y",my,"dur",80))
@@ -3028,7 +3106,7 @@ SaveEditorSequence() {
 ; Writes multiple slot keys into one file (preserves all slots)
 SaveMovementFileSlots(path, keys) {
     global CustomSeqs, SlotTriggers
-    out := "; DenniXD ATS V2.3.9 — saved from editor`n`n"
+    out := "; DenniXD ATS V2.4.0 — saved from editor`n`n"
     for slotKey in keys {
         if (!CustomSeqs.Has(slotKey))
             continue
