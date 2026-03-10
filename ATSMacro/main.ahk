@@ -507,7 +507,7 @@ MainLoop() {
     ; ── SCHEDULING ───────────────────────────────────────────────
     ; Summon  → once per session
     ; AV      → fires at real clock :00/:10/:20/:30/:40/:50
-    ; Rift    → fires at real clock :05/:15/:25/:35/:45/:55
+    ; Rift    → fires at real clock :00/:15/:30/:45
     ; DD / Raid / Custom → filler, run every cycle if enabled
     ;
     ; Priority order: Summon > Rift > AV > DD > Raid > Custom
@@ -517,12 +517,12 @@ MainLoop() {
     if (Running && ModeSummoning)
         RunSummon()
 
-    ; 2. Rift — fires at real clock :05/:15/:25/:35/:45/:55 (higher priority than AV)
+    ; 2. Rift — fires at real clock :00/:15/:30/:45 (higher priority than AV)
     if (Running && ModeRift) {
         currMin := Integer(FormatTime(, "mm"))
         currSec := Integer(FormatTime(, "ss"))
         ; Due when minute mod 10 == 5 and within first 60s of that minute (lobby window)
-        riftDue := (Mod(currMin, 10) == 5 && currSec < 60)
+        riftDue := (Mod(currMin, 15) == 0 && currSec < 60)
         ; Guard: don't re-run if already ran this window
         if (riftDue && (LastRiftTime == 0 || (A_TickCount - LastRiftTime > 300000))) {
             RunRift()
