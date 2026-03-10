@@ -414,9 +414,9 @@ StopMacro() {
     SetTimer(LiveTimerTick, 0)
     SetTimer(CrashWatchdog, 0)
     GuiLiveTimer.Text := "—"
-    ; Check for updates when macro stops — safe since nothing is running
-    UpdateAttempted := false  ; reset so it checks again on stop
-    SetTimer(CheckForUpdates, -1000)
+    ; Check for updates when macro stops — only if not already checked this session
+    if (!UpdateAttempted)
+        SetTimer(CheckForUpdates, -1000)
 }
 TogglePause() {
     global MacroPaused, Running, GuiStatus
@@ -902,16 +902,22 @@ CheckDifficultyDetected() {
 
 UpdateSearchArea() {
     ; Recalculates the enemy count search region relative to the Roblox window
-    ; Enemy count UI sits in the top-center of the Roblox window
     global StartX, StartY, EndX, EndY, RobloxTitle
-    if !WinExist(RobloxTitle)
+    if !WinExist(RobloxTitle) {
+        ; Fallback — use a wide area covering the full top of the screen
+        StartX := 0
+        StartY := 0
+        EndX   := A_ScreenWidth
+        EndY   := Round(A_ScreenHeight * 0.25)
         return
+    }
     WinGetPos(&wx, &wy, &ww, &wh, RobloxTitle)
-    ; Enemy count is roughly top 10% of window, center 25% horizontally
-    StartX := wx + Round(ww * 0.38)
-    StartY := wy + Round(wh * 0.02)
-    EndX   := wx + Round(ww * 0.62)
-    EndY   := wy + Round(wh * 0.12)
+    ; Cast a wide net — full width, top 25% of window
+    ; Better to scan more area than to miss the enemy count UI
+    StartX := wx
+    StartY := wy
+    EndX   := wx + ww
+    EndY   := wy + Round(wh * 0.25)
 }
 
 
