@@ -123,6 +123,7 @@ global Text11 := "|<>E4514E-323232$71.00000000000000000E0U000000003s7k00000000Dk
 global Text7  := "|<>DF4744-323232$71.00000000000000000Tz0000000001zz0000000003zz0000000007zw000000000Dzs00000000007k0000000000T00000000000y00000000003s0000000000Dk0000000000T00000000001w00000000003s0000000000DU0000000000T00000000000w00000000001s00000000003k00000000007U0000000000C00000000000000000000000000000000000000000000000000001"
 global Text12 := "|<>E34D4B-323232$71.000000000000000000000000000000000000000080w000000001w7y000000007sTy00000000Tlzy00000001zbzw00000007zDVw0000000DyS1s0000000Tww3k0000000PtsDU00000007k0z00000000DU3w00000000T0Dk00000000y1z000000001w7w000000003szU000000007lz000000000Dbzz00000000TDzy00000000STzw00000000sTzk000000000000000000000000001"
 global Text10 := "|<>E14A47-323232$71.0000000000000000000000000000107U00000000DUzk00000000z3zk00000003yDzk0000000DwTjU0000000zswDU0000001znsD00000003zbUS00000003TD0w00000000yS1s00000001ww3k00000003ts7U00000007nkD00000000DbkS00000000T7Vw00000000yDbs00000001wTzU00000003sTz000000003kTw0000000070TU000000000000000000000000000000000000001"
+global Text9  := "|<>E5514F-323232$71.000000000000000000000000000003s0000000000Tw0000000001zw0000000003zs000000000DXs000000000S3k000000000w7U000000001wT0000000001zy0000000003zw0000000003zs0000000001rk0000000000D00000000000y00000000003w0000000000Tk0000000007z0000000000Dw0000000000Tk0000000000w00000000000000000000000000000000000000001"
 global Text8  := "|<>DD4441-323232$71.000000000000000003s0000000000Dw0000000000zw0000000003zw0000000007ns000000000D3k000000000S7U000000000yT0000000001zw0000000001zs0000000007zs000000000Tzk000000000y7k000000001sDU000000003kT0000000007kw0000000007zs000000000DzU000000000Dy00000000007s0000000000000000000000000000000000000000000000000001"
 global Text6  := "|<>D83A36-323232$71.000000000000000000000000000000000000000003U0000000000zU0000000007z0000000000Ty0000000001zs0000000003s0000000000DU0000000000S00000000001xU0000000003zs0000000007zs000000000Dzs000000000T7k000000000w7U000000001sD0000000003sy0000000003zw0000000007zk0000000007z00000000003s00000000000000000000000000001"
 global Text5  := "|<>E34D4B-323232$71.00000000000000000000000000000000000000000zk0000000007zk000000000DzU000000000Tz0000000000zw0000000001s00000000003k0000000000Dw0000000000Ty0000000000zy0000000001zy0000000001vw00000000001s00000000003k00000000007U000000000wT0000000001zy0000000003zs0000000003zU0000000001w00000000000000000000000000001"
@@ -722,126 +723,98 @@ RunDemonSlayer() {
 }
 RunDoubleDungeon() {
     global Running, CurrentRaidStep, DungeonRuns, RaidStartTime
+    global SlotTriggers, GM_DD, StartX, StartY, EndX, EndY
     if (!Running)
         return
-    ; ── Step 0: Enter the raid ──────────────────────────────────
+
+    ; —— Step 0: Enter the raid ————————————————————————————
     if (CurrentRaidStep == 0) {
         GuiStatus.Text := "Double Dungeon — Entering"
-        RunCustomOrDefault("DD_EnterRaid",  (*) => 0)
+        RunCustomOrDefault("DD_EnterRaid", (*) => 0)
         RaidStartTime   := A_TickCount
         CurrentRaidStep := 0.5
-        ; ── Entry confirmation: wait up to 90s for 12 enemies ───
-        ; Just keep polling — do NOT re-run entry as it resets position
         GuiStatus.Text := "Double Dungeon — Waiting for enemies..."
         EntryDeadline := A_TickCount + 90000
+        ; Get entry trigger count from Step1 SlotTrigger (default 12)
+        step1Trig  := SlotTriggers.Has("DD_Step1") ? SlotTriggers["DD_Step1"] : "12 enemies"
+        step1Count := Integer(RegExReplace(step1Trig, "[^\d]", ""))
+        if (step1Count == 0)
+            step1Count := 12
+        step1TV := "Text" step1Count
         Loop {
             if (!Running)
                 return
             if (A_TickCount > EntryDeadline) {
-                ; Before giving up — check if difficulty text is visible (confirms in stage)
                 if (CheckDifficultyDetected()) {
                     GuiStatus.Text := "Double Dungeon — Difficulty detected, continuing..."
                     break
                 }
-                GuiStatus.Text := "Double Dungeon — Timed out, no stage detected — restarting cycle"
+                GuiStatus.Text := "Double Dungeon — Timed out, restarting cycle"
                 CurrentRaidStep := 0
                 return
             }
-            ; Also check difficulty mid-poll as faster confirmation
             if (CheckDifficultyDetected()) {
                 GuiStatus.Text := "Double Dungeon — Stage confirmed via difficulty"
                 break
             }
-            if GetFindText().FindText(&FoundX, &FoundY, StartX, StartY, EndX, EndY, 0.15, 0.15, Text12) {
-                GuiStatus.Text := "Double Dungeon — Stage confirmed (12 enemies)"
-                break
+            try {
+                if GetFindText().FindText(&FoundX, &FoundY, StartX, StartY, EndX, EndY, 0.15, 0.15, %step1TV%) {
+                    GuiStatus.Text := "Double Dungeon — Stage confirmed (" step1Count " enemies)"
+                    break
+                }
             }
             Sleep(500)
         }
         return
     }
-    ; ── Step 0.5: Confirmed inside — verify enemy count then run Step 1 ──
-    if (CurrentRaidStep == 0.5) {
-        ; Double-check: confirm 12 enemies still visible before executing
-        if GetFindText().FindText(&FoundX, &FoundY, StartX, StartY, EndX, EndY, 0.15, 0.15, Text12) {
-            Sleep(300)  ; brief pause to stabilise
-            ; Re-verify after pause
-            if GetFindText().FindText(&FoundX, &FoundY, StartX, StartY, EndX, EndY, 0.15, 0.15, Text12) {
-                RunCustomOrDefault("DD_Step1",      (*) => 0)
-                CurrentRaidStep := 2
-                Sleep(2913)   ; Step 1 total: 2563+100+250
+
+    ; —— Steps 0.5 onward: fully driven by SlotTriggers ———————————————
+    slots    := GM_DD
+    slotIdx  := (CurrentRaidStep == 0.5) ? 2 : Integer(CurrentRaidStep) + 1
+    if (slotIdx < 2 || slotIdx > slots.Length)
+        return
+
+    slot    := slots[slotIdx]
+    key     := slot["key"]
+    trigger := SlotTriggers.Has(key) ? SlotTriggers[key] : slot["trigger"]
+
+    ; Resolve trigger to FindText variable name
+    textVar := ""
+    if (trigger == "0 enemies") {
+        textVar := "Text0"
+    } else if (trigger != "—" && trigger != "— (manual/always)" && trigger != "") {
+        countStr := RegExReplace(trigger, "[^\d]", "")
+        if (countStr != "")
+            textVar := "Text" countStr
+    }
+
+    ; Check if trigger condition is met
+    triggered := false
+    if (textVar == "") {
+        triggered := true  ; no enemy trigger — run immediately
+    } else {
+        try {
+            if GetFindText().FindText(&FoundX, &FoundY, StartX, StartY, EndX, EndY, 0.15, 0.15, %textVar%) {
+                Sleep(200)
+                if GetFindText().FindText(&FoundX, &FoundY, StartX, StartY, EndX, EndY, 0.15, 0.15, %textVar%)
+                    triggered := true
             }
-        } else {
-            GuiStatus.Text := "Double Dungeon — Waiting for enemies..."
         }
+    }
+
+    if (!triggered) {
+        GuiStatus.Text := "Double Dungeon (Step " . CurrentRaidStep . " — waiting for " trigger ")"
         return
     }
-    ; ── Step 2 → 10: Enemy-count driven progression ─────────────
-    if (CurrentRaidStep == 2 && GetFindText().FindText(&FoundX, &FoundY, StartX, StartY, EndX, EndY, 0.15, 0.15, Text10)) {
-        RunCustomOrDefault("DD_Step2",      (*) => 0)
-        CurrentRaidStep := 3
-        Sleep(1319)   ; Step 2 total: 875+100+344
-    }
-    else if (CurrentRaidStep == 3 && GetFindText().FindText(&FoundX, &FoundY, StartX, StartY, EndX, EndY, 0.15, 0.15, Text8)) {
-        Sleep(200)  ; pause to stabilise count
-        if GetFindText().FindText(&FoundX, &FoundY, StartX, StartY, EndX, EndY, 0.15, 0.15, Text8) {
-        RunCustomOrDefault("DD_Step3",      (*) => 0)
-        CurrentRaidStep := 4
-        Sleep(3684)   ; Step 3 total: 2266+100+218+100+1000
-        }
-    }
-    else if (CurrentRaidStep == 4 && GetFindText().FindText(&FoundX, &FoundY, StartX, StartY, EndX, EndY, 0.15, 0.15, Text6)) {
-        Sleep(200)  ; pause to stabilise count
-        if GetFindText().FindText(&FoundX, &FoundY, StartX, StartY, EndX, EndY, 0.15, 0.15, Text6) {
-        RunCustomOrDefault("DD_Step4",      (*) => 0)
-        CurrentRaidStep := 5
-        Sleep(929)    ; Step 4 total: 563+100+266
-        }
-    }
-    else if (CurrentRaidStep == 5 && GetFindText().FindText(&FoundX, &FoundY, StartX, StartY, EndX, EndY, 0.15, 0.15, Text4)) {
-        Sleep(200)  ; pause to stabilise count
-        if GetFindText().FindText(&FoundX, &FoundY, StartX, StartY, EndX, EndY, 0.15, 0.15, Text4) {
-        RunCustomOrDefault("DD_Step5",      (*) => 0)
-        CurrentRaidStep := 6
-        Sleep(3607)   ; Step 5 total: 1500+100+407+100+1500
-        }
-    }
-    else if (CurrentRaidStep == 6 && GetFindText().FindText(&FoundX, &FoundY, StartX, StartY, EndX, EndY, 0.15, 0.15, Text2)) {
-        Sleep(200)  ; pause to stabilise count
-        if GetFindText().FindText(&FoundX, &FoundY, StartX, StartY, EndX, EndY, 0.15, 0.15, Text2) {
-        RunCustomOrDefault("DD_Step6",      (*) => 0)
-        CurrentRaidStep := 7
-        Sleep(1025)   ; Step 6 total: 625+100+300
-        }
-    }
-    else if (CurrentRaidStep == 7 && GetFindText().FindText(&FoundX, &FoundY, StartX, StartY, EndX, EndY, 0.15, 0.15, Text10)) {
-        Sleep(200)  ; pause to stabilise count
-        if GetFindText().FindText(&FoundX, &FoundY, StartX, StartY, EndX, EndY, 0.15, 0.15, Text10) {
-        RunCustomOrDefault("DD_Step7",      (*) => 0)
-        CurrentRaidStep := 8
-        Sleep(16711)  ; Step 7 total: 4016+100+5063+100+2438+100+1172+100+453+100+1500+100+1469
-        }
-    }
-    else if (CurrentRaidStep == 8 && GetFindText().FindText(&FoundX, &FoundY, StartX, StartY, EndX, EndY, 0.15, 0.15, Text5)) {
-        Sleep(200)  ; pause to stabilise count
-        if GetFindText().FindText(&FoundX, &FoundY, StartX, StartY, EndX, EndY, 0.15, 0.15, Text5) {
-        RunCustomOrDefault("DD_Step8",      (*) => 0)
-        CurrentRaidStep := 9
-        Sleep(19511)  ; Step 8 total: 8938+100+3610+100+2328+100+188+100+219+100+1360+100+1640+100+172+100+156
-        }
-    }
-    else if (CurrentRaidStep == 9 && GetFindText().FindText(&FoundX, &FoundY, StartX, StartY, EndX, EndY, 0.15, 0.15, Text1)) {
-        Sleep(200)  ; pause to stabilise count
-        if GetFindText().FindText(&FoundX, &FoundY, StartX, StartY, EndX, EndY, 0.15, 0.15, Text1) {
-        RunCustomOrDefault("DD_Step9",      (*) => 0)
-        CurrentRaidStep := 10
-        Sleep(6716)   ; Step 9 total: 2641+100+3032+100+843
-        }
-    }
-    else if (CurrentRaidStep == 10 && GetFindText().FindText(&FoundX, &FoundY, StartX, StartY, EndX, EndY, 0.15, 0.15, Text0)) {
-        Sleep(200)  ; pause to stabilise count
-        if GetFindText().FindText(&FoundX, &FoundY, StartX, StartY, EndX, EndY, 0.15, 0.15, Text0) {
-        RunCustomOrDefault("DD_Step10",     (*) => 0)
+
+    ; Run the slot sequence
+    GuiStatus.Text := "Double Dungeon — " slot["label"]
+    RunCustomOrDefault(key, (*) => 0)
+
+    ; Advance to next slot
+    nextIdx := slotIdx + 1
+    if (nextIdx > slots.Length) {
+        ; All slots done — run complete
         DungeonRuns += 1
         CurrentRaidStep := 0
         GuiStatus.Text := "● Done  [DD: " . DungeonRuns . "]"
@@ -849,9 +822,8 @@ RunDoubleDungeon() {
         CaptureAndSend(false)
         ReturnToLobby()
         return
-        }
     }
-    GuiStatus.Text := "Double Dungeon (Step " . CurrentRaidStep . ")"
+    CurrentRaidStep := (nextIdx == 2) ? 0.5 : Float(nextIdx - 1)
 }
 ; ================================================================
 ;   DOUBLE DUNGEON — MOVEMENT FUNCTIONS
@@ -862,7 +834,7 @@ RunDoubleDungeon() {
 RunRift() {
     global Running, RiftRuns, RaidStartTime, CurrentRaidStep
     global TextNightmare, TextMedium, TextEasy, TextHard, StartX, StartY, EndX, EndY
-    global Text0, Text1, Text2, Text4, Text5, Text6, Text7, Text8
+    global Text0, Text1, Text2, Text4, Text5, Text6, Text7, Text8, Text9
     GuiStatus.Text := "Rift — Starting"
     RaidStartTime  := A_TickCount
 
@@ -895,7 +867,7 @@ RunRift() {
         if (matchFound)
             break
         ; Check enemy count as fallback
-        for txtVar in [Text1, Text2, Text4, Text5, Text6, Text7, Text8] {
+        for txtVar in [Text1, Text2, Text4, Text5, Text6, Text7, Text8, Text9] {
             try {
                 if GetFindText().FindText(&fx, &fy, StartX, StartY, EndX, EndY, 0.15, 0.15, txtVar) {
                     matchFound := true
@@ -2260,7 +2232,7 @@ global EditorAppendMode  := false  ; true = append to existing steps, false = re
 global CustomFileName    := ""      ; name entered by user for saving custom gamemode file
 global EditorSlotIdx     := 1       ; currently selected slot index
 global SlotTriggers      := Map()   ; key -> custom trigger string, saved to Sequences.txt
-global TriggerOptions    := ["— (manual/always)", "0 enemies", "1 enemy", "2 enemies", "4 enemies", "5 enemies", "6 enemies", "7 enemies", "8 enemies", "10 enemies", "11 enemies", "12 enemies", "13 enemies", "14 enemies", "15 enemies", "16 enemies", "17 enemies", "18 enemies", "19 enemies", "20 enemies", "21 enemies", "22 enemies", "23 enemies", "24 enemies", "25 enemies", "26 enemies", "27 enemies", "28 enemies", "29 enemies", "30 enemies", "31 enemies", "32 enemies", "33 enemies", "34 enemies", "35 enemies", "After entry"]
+global TriggerOptions    := ["— (manual/always)", "0 enemies", "1 enemy", "2 enemies", "3 enemies", "4 enemies", "5 enemies", "6 enemies", "7 enemies", "8 enemies", "9 enemies", "10 enemies", "11 enemies", "12 enemies", "13 enemies", "14 enemies", "15 enemies", "16 enemies", "17 enemies", "18 enemies", "19 enemies", "20 enemies", "21 enemies", "22 enemies", "23 enemies", "24 enemies", "25 enemies", "26 enemies", "27 enemies", "28 enemies", "29 enemies", "30 enemies", "31 enemies", "32 enemies", "33 enemies", "34 enemies", "35 enemies", "After entry"]
 
 ; Gamemode slot definitions: key -> {label, trigger}
 global GM_DD := [
@@ -2390,7 +2362,7 @@ OpenSequenceEditor() {
     EditorGui.SetFont("s8 cAAAAAA Bold", "Segoe UI")
     EditorGui.AddText("x16 y410 w180", "TRIGGER:")
     EditorGui.SetFont("s8 cFFFFFF Norm", "Segoe UI")
-    global DdlTrigger := EditorGui.AddDropDownList("x16 y426 w180", ["— (manual/always)", "0 enemies", "1 enemy", "2 enemies", "4 enemies", "5 enemies", "6 enemies", "7 enemies", "8 enemies", "10 enemies", "11 enemies", "12 enemies", "13 enemies", "14 enemies", "15 enemies", "16 enemies", "17 enemies", "18 enemies", "19 enemies", "20 enemies", "21 enemies", "22 enemies", "23 enemies", "24 enemies", "25 enemies", "26 enemies", "27 enemies", "28 enemies", "29 enemies", "30 enemies", "31 enemies", "32 enemies", "33 enemies", "34 enemies", "35 enemies", "After entry"])
+    global DdlTrigger := EditorGui.AddDropDownList("x16 y426 w180", ["— (manual/always)", "0 enemies", "1 enemy", "2 enemies", "3 enemies", "4 enemies", "5 enemies", "6 enemies", "7 enemies", "8 enemies", "9 enemies", "10 enemies", "11 enemies", "12 enemies", "13 enemies", "14 enemies", "15 enemies", "16 enemies", "17 enemies", "18 enemies", "19 enemies", "20 enemies", "21 enemies", "22 enemies", "23 enemies", "24 enemies", "25 enemies", "26 enemies", "27 enemies", "28 enemies", "29 enemies", "30 enemies", "31 enemies", "32 enemies", "33 enemies", "34 enemies", "35 enemies", "After entry"])
     DdlTrigger.Value := 1
     DdlTrigger.OnEvent("Change", OnTriggerChange)
 
@@ -2484,7 +2456,7 @@ OnEditorGMChange(ctrl, *) {
     EditorSteps      := []
     EditorSlotKey    := ""
     EditorFocusedRow := 0
-    isCustom := (EditorGamemode == "Custom" || EditorGamemode == "Rift")
+    isCustom := (EditorGamemode == "Custom" || EditorGamemode == "Rift" || EditorGamemode == "DD")
     LblSaveFile.Visible  := isCustom
     EditFileName.Visible := isCustom
     BtnSaveFile.Visible  := isCustom
