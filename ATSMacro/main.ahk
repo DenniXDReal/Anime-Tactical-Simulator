@@ -60,6 +60,7 @@ global DebugVisible    := false
 global RobloxTitle     := "Roblox"
 global CurrentRaidStep := 0
 global LastRejoinTime  := 0   ; tracks last time PS link was opened (ms)
+global AutoRejoinEnabled := (IniRead(IniFile, "Settings", "AutoRejoin", "1") == "1")
 ; ── Farm mode toggles (true = enabled) ──
 global ModeAbandonVillage := true    ; Abandon Village (ex Demon Slayer)
 global ModeDoubleDungeon  := true    ; Double Dungeon
@@ -376,7 +377,10 @@ global EditWeb := SettingsGui.AddEdit("x16 y30 w348 h24 Background1A1A1A", Disco
 SettingsGui.AddText("x16 y66 w348 cAAAAAA", "ROBLOX PRIVATE SERVER LINK")
 global EditPS := SettingsGui.AddEdit("x16 y82 w348 h24 Background1A1A1A", PrivateServer)
 
-SettingsGui.AddText("x16 y118 w348 cAAAAAA", "SPEED SCALING")
+global ChkAutoRejoin := SettingsGui.AddCheckbox("x16 y106 w348 cFFFFFF Checked", "Auto-Rejoin PS Server every 1 hour")
+ChkAutoRejoin.OnEvent("Click", (*) => (AutoRejoinEnabled := ChkAutoRejoin.Value ? true : false))
+
+SettingsGui.AddText("x16 y134 w348 cAAAAAA", "SPEED SCALING")
 SettingsGui.AddText("x16 y134 w160 c888888", "Creator Speed (default)")
 SettingsGui.AddText("x196 y134 w160 c888888", "Your Speed")
 global EditCreatorSpeed := SettingsGui.AddEdit("x16 y150 w160 h24 Background1A1A1A", CreatorSpeed)
@@ -424,6 +428,7 @@ SettingsGui.OnEvent("Close", (*) => SettingsGui.Hide())
 DdlSummonMap.OnEvent("Change", UpdateSummonMap)
 DdlSummonMap.Value := 1
 ChkSummonActive.OnEvent("Click", (*) => UpdateSummonActive())
+ChkAutoRejoin.Value := AutoRejoinEnabled ? 1 : 0
 
 InitFolders()    ; create folders if missing
 LoadAllMovementFiles()  ; load movements first (steps from txt files)
@@ -439,7 +444,7 @@ F1:: StartMacro()
 F2:: StopMacro()
 F3:: KillAll()
 F4:: TogglePause()
-F5:: TravelToGamemode(true)
+F5:: Execute_ResetTravelUI()
 F7:: (EditorOpen ? StartEditorRecording(true) : 0)
 F8:: (EditorOpen ? StartEditorRecording(false) : 0)
 F9:: (EditorOpen ? StopEditorRecording() : 0)
@@ -1372,6 +1377,7 @@ CheckForUpdates(force := false) {
     batContent := "@echo off`r`n"
                 . "timeout /t 2 /nobreak >nul`r`n"
                 . "move /y `"" . mainTmp . "`" `"" . A_ScriptFullPath . "`"`r`n"
+                . "if exist `"" . bakPath . "`" del /f /q `"" . bakPath . "`"`r`n"
                 . "start `"`" `"" . A_ScriptFullPath . "`"`r`n"
                 . "del `"%~f0`"`r`n"
     try {
@@ -1876,6 +1882,7 @@ SaveSettings(*) {
     MyGui.BackColor := CustomColor
     IniWrite(DiscordWebhook, IniFile, "Settings", "Webhook")
     IniWrite(PrivateServer,  IniFile, "Settings", "PSLink")
+    IniWrite(AutoRejoinEnabled ? "1" : "0", IniFile, "Settings", "AutoRejoin")
     IniWrite(CreatorSpeed,   IniFile, "Settings", "CreatorSpeed")
     IniWrite(UserSpeed,      IniFile, "Settings", "UserSpeed")
     IniWrite(CustomColor,    IniFile, "Settings", "UIColor")
@@ -2404,12 +2411,25 @@ ReloadMovementFolder(folder) {
 }
 
 LoadSequences() {
-    global CustomSeqs, SeqFile, SlotTriggers
+    global CustomSeqs, SeqFile, SlotTriggers, FolderCustom, FolderRaids, FolderSummon
     CustomSeqs   := Map()
     SlotTriggers := Map()
-    if (!FileExist(SeqFile))
-        return
-    for line in StrSplit(FileRead(SeqFile), "`n", "`r") {
+
+    ; ── Scan all folder txt files first (Custom, Raids, Summon) ──
+    filesToLoad := []
+    for folder in [FolderCustom, FolderRaids, FolderSummon] {
+        loop files folder "\*.txt" {
+            filesToLoad.Push(A_LoopFileFullPath)
+        }
+    }
+    ; Also load Sequences.txt on top (user overrides)
+    if FileExist(SeqFile)
+        filesToLoad.Push(SeqFile)
+
+    for filePath in filesToLoad {
+        if (!FileExist(filePath))
+            continue
+        for line in StrSplit(FileRead(filePath), "`n", "`r") {
         line := Trim(line)
         if (line == "" || SubStr(line, 1, 1) == ";")
             continue
@@ -2488,7 +2508,8 @@ LoadSequences() {
             step["count"] := Integer(parts[3])
         }
         CustomSeqs[seqName].Push(step)
-    }
+        } ; end for line
+    } ; end for filePath
 }
 
 SaveSequences() {
@@ -2542,7 +2563,7 @@ RejoinPS() {
     global PrivateServer, RobloxTitle, LastRejoinTime, Running, TextLoaded, ModeSummoning
 
     OneHour       := 3600000
-    NeedsPSLaunch := (LastRejoinTime == 0 || (A_TickCount - LastRejoinTime >= OneHour))
+    NeedsPSLaunch := AutoRejoinEnabled && (LastRejoinTime == 0 || (A_TickCount - LastRejoinTime >= OneHour))
 
     if (!NeedsPSLaunch) {
         Remaining := Round((OneHour - (A_TickCount - LastRejoinTime)) / 60000)
