@@ -15,7 +15,7 @@ SetTimer(CheckForUpdates, -1500)
 SetDefaultMouseSpeed(0)
 CoordMode("Mouse", "Screen")
 ; ================================================================
-;   DenniXD ATS MACRO V2.4.5 — Combined Double Dungeon + Abandon Village
+;   DenniXD ATS MACRO V2.4.6 — Combined Double Dungeon + Abandon Village
 ; ================================================================
 ; ---------------- INITIALIZE FILES ----------------
 InitFiles() {
@@ -27,7 +27,7 @@ InitFiles() {
     }
     ; Create empty Sequences.txt if missing
     if (!FileExist(seqPath)) {
-        FileAppend("; DenniXD ATS Macro V2.4.5 - Sequences`n; Auto-generated on first run`n", seqPath, "UTF-8")
+        FileAppend("; DenniXD ATS Macro V2.4.6 - Sequences`n; Auto-generated on first run`n", seqPath, "UTF-8")
     }
 }
 InitFiles()
@@ -35,7 +35,7 @@ InitFiles()
 ; ---------------- INITIALIZE SETTINGS ----------------
 global IniFile        := A_ScriptDir "\Settings.ini"
 global DiscordWebhook := IniRead(IniFile, "Settings", "Webhook", "")
-global MacroVersion      := "2.4.5"
+global MacroVersion      := "2.4.6"
 global CreatorSpeed      := 32      ; macro creator's in-game speed (do not change)
 global UserSpeed         := 32      ; user's in-game speed (set in Settings)
 global SpeedScale        := 1.0     ; calculated as CreatorSpeed / UserSpeed
@@ -50,7 +50,6 @@ global CustomColor    := IniRead(IniFile, "Settings", "UIColor", "1A1A1A")
 global Running         := false
 global DemonRuns       := 0
 global DungeonRuns          := 0
-global DDRunsSinceReset     := 0  ; resets TravelUI every 3 DD completions
 global RejoinCount     := 0
 global SessionStart    := A_TickCount
 global RaidStartTime   := 0
@@ -198,7 +197,7 @@ global Text0  := "|<>D83A37-323232$71.00000000000000000000000000000T00000000003z
 ; ================================================================
 ;   GUI SETUP  —  Modern dark card layout
 ; ================================================================
-MyGui := Gui("+AlwaysOnTop -Caption +Border", "DenniXD ATS Macro V2.4.5")
+MyGui := Gui("+AlwaysOnTop -Caption +Border", "DenniXD ATS Macro V2.4.6")
 MyGui.BackColor := "0D0D0D"
 OnMessage(0x0201, WM_LBUTTONDOWN)
 WM_LBUTTONDOWN(wParam, lParam, msg, hwnd) {
@@ -216,7 +215,7 @@ MyGui.AddText("x0 y0 w430 h3 Background7B2FFF", "")   ; purple accent strip
 MyGui.SetFont("s13 cFFFFFF Bold", "Segoe UI")
 MyGui.AddText("x16 y14 w300", "DenniXD ATS MACRO")
 MyGui.SetFont("s8 c555555 Norm", "Segoe UI")
-MyGui.AddText("x16 y32 w300", "V2.4.5  ·  Double Dungeon + Abandon Village")
+MyGui.AddText("x16 y32 w300", "V2.4.6  ·  Double Dungeon + Abandon Village")
 
 ; Close [ X ]
 MyGui.SetFont("s10 cFF4455 Bold", "Segoe UI")
@@ -788,7 +787,7 @@ RunDemonSlayer() {
 }
 RunDoubleDungeon() {
     ; CurrentRaidStep: 0 = not started, 1 = entered (waiting), 2+ = slot index into GM_DD
-    global Running, CurrentRaidStep, DungeonRuns, DDRunsSinceReset, RaidStartTime, EntryFailCount
+    global Running, CurrentRaidStep, DungeonRuns, RaidStartTime, EntryFailCount
     global SlotTriggers, GM_DD, CustomSeqs, StartX, StartY, EndX, EndY
     if (!Running)
         return
@@ -806,15 +805,9 @@ RunDoubleDungeon() {
         if (slots.Length < 2) {
             ; Only entry slot exists — run complete
             DungeonRuns += 1
-            DDRunsSinceReset += 1
-            GuiStatus.Text := "● Done  [DD: " . DungeonRuns . "]"
+                    GuiStatus.Text := "● Done  [DD: " . DungeonRuns . "]"
             Sleep(5000)
             CaptureAndSend(false)
-            if (DDRunsSinceReset >= 3) {
-                DDRunsSinceReset := 0
-                GuiStatus.Text := "DD — 3 runs done, resetting TravelUI..."
-                TravelToGamemode(false)
-            }
             ReturnToLobby()
             CurrentRaidStep := 0
             return
@@ -1003,16 +996,10 @@ RunDoubleDungeon() {
 
     ; All slots done — run complete
     DungeonRuns += 1
-    DDRunsSinceReset += 1
     CurrentRaidStep := 0
     GuiStatus.Text := "● Done  [DD: " . DungeonRuns . "]"
     Sleep(5000)
     CaptureAndSend(false)
-    if (DDRunsSinceReset >= 3) {
-        DDRunsSinceReset := 0
-        GuiStatus.Text := "DD — 3 runs done, resetting TravelUI..."
-        TravelToGamemode(false)
-    }
     ReturnToLobby()
 }
 
@@ -1687,6 +1674,78 @@ TravelToGamemode(isStart := false) {
     GuiStatus.Text := "Travel done — ready for next cycle"
 }
 
+Execute_ReturnToLobby() {
+    if WinExist(RobloxTitle) {
+        WinActivate(RobloxTitle)
+        WinWaitActive(RobloxTitle, , 2)
+    }
+    BlockInput("On")
+    SafeClick(1564, 827), Sleep(100)
+    Loop 11 {
+        SafeClick(1564, 804), Sleep(80)
+    }
+    Send("{f down}"), Sleep(63), Send("{f up}")
+    SafeClick(1234, 597), Sleep(100)
+    SafeClick(1234, 597)
+    BlockInput("Off")
+}
+
+Execute_ResetTravelUI() {
+    global RobloxTitle
+    if WinExist(RobloxTitle) {
+        WinActivate(RobloxTitle)
+        WinWaitActive(RobloxTitle, , 3)
+    }
+    BlockInput("On")
+    SafeClick(810, 327), Sleep(50)
+    Send("{f down}"),    Sleep(110), Send("{f up}"),  Sleep(50)
+    Send("{\ down}"),   Sleep(109), Send("{\ up}"), Sleep(50)
+    Send("{s down}"),    Sleep(94),  Send("{s up}"),  Sleep(50)
+    Send("{d down}"),    Sleep(78),  Send("{d up}"),  Sleep(50)
+    Send("{s down}"),    Sleep(78),  Send("{s up}"),  Sleep(50)
+    Send("{s down}"),    Sleep(78),  Send("{s up}"),  Sleep(50)
+    Send("{s down}"),    Sleep(125), Send("{s up}"),  Sleep(50)
+    Send("{s down}"),    Sleep(141), Send("{s up}"),  Sleep(50)
+    Send("{s down}"),    Sleep(110), Send("{s up}"),  Sleep(50)
+    Send("{w down}"),    Sleep(78),  Send("{w up}"),  Sleep(50)
+    Send("{w down}"),    Sleep(110), Send("{w up}"),  Sleep(50)
+    Send("{w down}"),    Sleep(125), Send("{w up}"),  Sleep(50)
+    Send("{w down}"),    Sleep(125), Send("{w up}"),  Sleep(50)
+    Send("{w down}"),    Sleep(110), Send("{w up}"),  Sleep(50)
+    Send("{w down}"),    Sleep(110), Send("{w up}"),  Sleep(50)
+    Send("{w down}"),    Sleep(109), Send("{w up}"),  Sleep(50)
+    Send("{w down}"),    Sleep(78),  Send("{w up}"),  Sleep(50)
+    Send("{w down}"),    Sleep(109), Send("{w up}"),  Sleep(50)
+    Send("{\ down}"),   Sleep(156), Send("{\ up}"), Sleep(50)
+    Send("{\ down}"),   Sleep(109), Send("{\ up}"), Sleep(50)
+    Send("{s down}"),    Sleep(94),  Send("{s up}"),  Sleep(50)
+    Send("{d down}"),    Sleep(78),  Send("{d up}"),  Sleep(50)
+    Send("{s down}"),    Sleep(110), Send("{s up}"),  Sleep(50)
+    Send("{s down}"),    Sleep(125), Send("{s up}"),  Sleep(50)
+    Send("{s down}"),    Sleep(109), Send("{s up}"),  Sleep(50)
+    Send("{s down}"),    Sleep(109), Send("{s up}"),  Sleep(50)
+    Send("{s down}"),    Sleep(94),  Send("{s up}"),  Sleep(50)
+    Send("{s down}"),    Sleep(93),  Send("{s up}"),  Sleep(50)
+    Send("{s down}"),    Sleep(125), Send("{s up}"),  Sleep(50)
+    Send("{s down}"),    Sleep(110), Send("{s up}"),  Sleep(50)
+    Send("{s down}"),    Sleep(109), Send("{s up}"),  Sleep(50)
+    Send("{s down}"),    Sleep(125), Send("{s up}"),  Sleep(50)
+    Send("{s down}"),    Sleep(78),  Send("{s up}"),  Sleep(50)
+    Send("{w down}"),    Sleep(94),  Send("{w up}"),  Sleep(50)
+    Send("{w down}"),    Sleep(94),  Send("{w up}"),  Sleep(50)
+    Send("{w down}"),    Sleep(109), Send("{w up}"),  Sleep(50)
+    Send("{w down}"),    Sleep(78),  Send("{w up}"),  Sleep(50)
+    Send("{w down}"),    Sleep(78),  Send("{w up}"),  Sleep(50)
+    Send("{s down}"),    Sleep(94),  Send("{s up}"),  Sleep(50)
+    Send("{s down}"),    Sleep(93),  Send("{s up}"),  Sleep(50)
+    Send("{s down}"),    Sleep(78),  Send("{s up}"),  Sleep(50)
+    Send("{s down}"),    Sleep(94),  Send("{s up}"),  Sleep(50)
+    Send("{\ down}"),   Sleep(156), Send("{\ up}"), Sleep(50)
+    Send("{f down}"),    Sleep(94),  Send("{f up}")
+    BlockInput("Off")
+    Sleep(1000)
+}
+
 ReturnToLobby() {
     global RobloxTitle
     if WinExist(RobloxTitle) {
@@ -1828,8 +1887,7 @@ ResetStats(*) {
     if (MsgBox("Reset all stats?", "Confirm", "YesNo") == "Yes") {
         DemonRuns       := 0
         DungeonRuns     := 0
-        DDRunsSinceReset    := 0
-        EntryFailCount      := 0
+            EntryFailCount      := 0
         RejoinCount     := 0
         CurrentRaidStep := 0
         SessionStart    := A_TickCount
@@ -1881,7 +1939,7 @@ CaptureAndSend(IsManualTest := false) {
     Duration := h . "h " . m . "m " . s . "s"
     global RiftRuns, RaidRuns, RaidType, CustomRuns, CustomRunName
     currStatus := MacroPaused ? "⏸ Paused" : "● Running"
-    Payload := '{"embeds": [{"title": "DenniXD ATS Macro V2.4.5","color": 8323327,'
+    Payload := '{"embeds": [{"title": "DenniXD ATS Macro V2.4.6","color": 8323327,'
              . '"image": {"url": "attachment://ss.png"},'
              . '"fields": ['
              . '{"name": "🗡 Abandon Village",  "value": "' . DemonRuns   . ' runs", "inline": true},'
@@ -1892,7 +1950,7 @@ CaptureAndSend(IsManualTest := false) {
              . '{"name": "🔄 Rejoined",        "value": "' . RejoinCount . ' times", "inline": true},'
              . '{"name": "⏱ Uptime",          "value": "' . Duration    . '", "inline": true},'
              . '{"name": "📊 Status",          "value": "' . currStatus  . '", "inline": true}'
-             . '],"footer": {"text": "DenniXD ATS V2.4.5  ·  ' . FormatTime(, "HH:mm:ss") . '"}}]}'
+             . '],"footer": {"text": "DenniXD ATS V2.4.6  ·  ' . FormatTime(, "HH:mm:ss") . '"}}]}'
     try {
         FileOpen(JsonPath, "w", "UTF-8").Write(Payload)
         RunWait('curl.exe -s -F "payload_json=<' JsonPath '" -F "file=@' SSPath '" "' EditWeb.Value '"', , "Hide")
