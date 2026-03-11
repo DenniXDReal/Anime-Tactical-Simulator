@@ -15,7 +15,7 @@ SetTimer(CheckForUpdates, -1500)
 SetDefaultMouseSpeed(0)
 CoordMode("Mouse", "Screen")
 ; ================================================================
-;   DenniXD ATS MACRO V2.4.6 — Combined Double Dungeon + Abandon Village
+;   DenniXD ATS MACRO V2.4.3 — Combined Double Dungeon + Abandon Village
 ; ================================================================
 ; ---------------- INITIALIZE FILES ----------------
 InitFiles() {
@@ -27,7 +27,7 @@ InitFiles() {
     }
     ; Create empty Sequences.txt if missing
     if (!FileExist(seqPath)) {
-        FileAppend("; DenniXD ATS Macro V2.4.6 - Sequences`n; Auto-generated on first run`n", seqPath, "UTF-8")
+        FileAppend("; DenniXD ATS Macro V2.4.3 - Sequences`n; Auto-generated on first run`n", seqPath, "UTF-8")
     }
 }
 InitFiles()
@@ -35,7 +35,7 @@ InitFiles()
 ; ---------------- INITIALIZE SETTINGS ----------------
 global IniFile        := A_ScriptDir "\Settings.ini"
 global DiscordWebhook := IniRead(IniFile, "Settings", "Webhook", "")
-global MacroVersion      := "2.4.6"
+global MacroVersion      := "2.10"
 global CreatorSpeed      := 32      ; macro creator's in-game speed (do not change)
 global UserSpeed         := 32      ; user's in-game speed (set in Settings)
 global SpeedScale        := 1.0     ; calculated as CreatorSpeed / UserSpeed
@@ -50,6 +50,7 @@ global CustomColor    := IniRead(IniFile, "Settings", "UIColor", "1A1A1A")
 global Running         := false
 global DemonRuns       := 0
 global DungeonRuns          := 0
+global DDRunsSinceReset     := 0  ; resets TravelUI every 3 DD completions
 global RejoinCount     := 0
 global SessionStart    := A_TickCount
 global RaidStartTime   := 0
@@ -142,17 +143,9 @@ global SlotTriggers       := Map()   ; key -> custom trigger string, saved to Se
 ; Search Area Coordinates (for FindText enemy-count overlay)
 ; Search area — calculated dynamically from Roblox window at runtime
 ; These are set by UpdateSearchArea() on start and after every rejoin
-global StartX := 656, StartY := 46, EndX := 778, EndY := 88
+global StartX := 600, StartY := 30, EndX := 850, EndY := 120
 ; ---------------- FINDTEXT CODES (Enemy Count Detection) ----------------
 global Text35 := "|<>DF4744-323232$71.0000000000000000T07y00000003zUzy0000000DzVzw0000000zz3zs0000001wz7zU0000003kSD0000000030wS000000000TtzU00000001zXzk00000003y7zk00000007yDzk00000007yTTU00000000w0D0000000S1s0S0000000w3k0w0000001wDbXs0000001zzDzk0000003zwTz00000003zkTw00000001y0Dk000000000000000000000000000000000000000000000000001"
-
-; ── TravelUI map-name detection patterns ──
-global TextTravelLobby        := "|<>FFC85B-323232$201.0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000007w0007w000000000000000000000000001zU001zU00000000000000003y00000000Dw000Dw00000000000000000Tk00000001zU001zU00000000000000007y00000000Dw000Dw00000000000000000zs00000001zU001zU00000000000000007z00000000Dw000Dw00000000000000000zs00000001zU001zU00000000000000007z00000000Dw000Dw00000000000000000zs00000001zU001zU00000000000000007z00000000Dw000Dw00000000000000000zs00000001zU001zU00000000000000007z00000000Dw000Dw00000000000000000zs00003k01zU001zU00040000000000007z00003zk0DwDU0DwDU07k03s000000000zs0001zzU1zbzU1zbzU1z00zU000000007z0000zzz0Dzzy0Dzzy0Tw07y000000000zs000Dzzw1zzzs1zzzs3zU1zk000000007z0003zzzkDzzzUDzzzUTy0Dy000000000zs000Tzzy1zzzy1zzzy1zk1zU000000007z0007zzzsDzzzkDzzzkDz0Tw000000000zs000zzzz1zzzz1zzzz0zs3zU000000007z000Dz0zwDzVzsDzVzs3zUzs000000000zs001zk3zVzs7zVzs7zUTy7z0000000007z000Dw0DwDy0TwDy0Tw1zlzk000000000zs001zU1zVzk1zVzk1zU7zDy0000000007z000Dw0DwDy0DwDy0Dw0zvzU000000000zk001zU1zVzk1zVzk1zU3zzw0000000007y000Dw0DwDy0DwDy0Dw0Tzz0000000000zk001zU1zVzk3zVzk3zU1zzs0000000007y000Dy0TwDz0zsDz0zs07zy0000000000zk000zwDzVzyTz1zyTz00zzk0000000007z0007zzzsDzzzsDzzzs03zw0000000000zzzzUTzzz1zzzy1zzzy00TzU0000000007zzzw3zzzkDzzzUDzzzU01zw0000000000zzzzkDzzw1zzzs1zzzs007z00000000007zzzy0zzz0Dzzy0Dzzy000zs0000000000Tzzzk3zzk0zjzU0zjzU007y00000000003zzzw07zs07wTk07wTk001zk00000000003zzy007s0000000000000Dw00000000000000000000000000000003zU000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000004"
-global TextTravelNamex        := "|<>FFC055-323232$201.000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000003y007w0000000000000000000000007zz0Ts00zU000000000000000000000000zzs7z007y000000000000000000000000Dzz0zw01zk000000000000000000000001zzs7zk0Dy000000000000000000000000Dzz0zz01zk000000000000000000000001zzs7zs0Dy000000000000000000000000Dzz0zzU1zk000000000000000000000001zzs7zy0Dy000000000000000000000000Dy00zzs1zk00000000000000Q000000001zk07zz0Dy01y3s3w7s0y000zy01s03k00Dy00zzw1zk0zwzUTnzUTw00Tzw0zU0z001zk07zzkDy0Dzzw7yzyDzk0Dzzk7y0Dw00Dy00zzz1zk7zzzUzzztzz03zzz1zs3zU01zk07zzsDy0zzzy7zzzzzw0zzzwDzUzw00Dy00zzzVzkDzzzkzzzzzzUDzzzVzyDzU01zk07zTyDy3zzzy7zzzzzw1zzzy7zvzs00Dy00ztztzkTzzzkzzzzzzkTz1zkTzzy001zzs7z7zDy7zlzy7zXzwTy3zk7y1zzzU00Dzz0zszxzkzs3zkzsDz1zkTw0zk7zzs001zzs7z3zzy7y0Ty7z0zs7y3z07y0Tzy000Dzz0zsDzzkzk1zkzs7z0zkTzzzk1zzU001zzs7y0zzy7y0Dw7z0zk7y3zzzy07zs000Dzz0zk7zzkzk1zUzk7y0zkTzzzU0zzU001zzs7y0Tzy7y0Dw7y0zk7y3zzzs0Dzy000Dzz0zk1zzkzs3zUzk7y0zkTw0003zzs001zzs7y07zy7zUzw7y0zk7y3zU000zzz000Dy00zk0TzkzzzzUzk7y0zkTw000Dzzw001zk07y03zy3zzzw7y0zk7y1zs1k3zzzk00Dw00zk0DzkDzzzUzk7y0zkDzzz0zyTz001zU07y00zy1zzzw7y0zk7y0zzzsDzVzw00Dw00zk03zk7zzzUzk7y0zk3zzzVzs7zU01zU07y00Ty0Tzzw7y0zk7y0TzzwDy0Tw00Dw00Tk01zU1zwzUTk7y0zk1zzz0zU1z000zU03y007w03z7w3y0Tk3y03zzk3s07k007w007000C000000700k06007zs0600A0004000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000004"
-global TextTravelColosseum    := "|<>FFCA5D-0.90$201.0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000003y000000000000000000000000w0000000Tk00000000000000000000001zy0000007y00000000000000000000000zzy000000zk0000000000000000000000Tzzs000007y0000000000000000000000Dzzzk00000zk0000000000000000000003zzzy000007y0000000000000000000000zzzzk00000zk000000000000000000000Dzzzy000007y0000000000000000000003zzzzk00000zk000000000000000000000TzU3w000007y0000000000000000000007zk0D000k00zk003000000000000100000zw00001zs07y007zU00zy00zy007zk0D07z00000zzk0zk03zz00Tzy0Tzy03zzU3s1zk0000Dzz07y00zzw07zzs7zzs1zzy0z0Dy00007zzy0zk0Tzzs1zzz1zzz0Tzzs7s1zU0000zzzs7y03zzzUDzzkDzzk7zzzUz0Dw0000Dzzz0zk0zzzw1zzy1zzy0zzzw7s1zU0003zzzw7y0DzzzkDs3UDs3UDzzzUz0Dw0000TzDzUzk1zwzy1z001z001zsDy7s1zU0007zUTy7y0Ty1zsDs00Ds00Tw0zkz0Dw0000zs1zkzk3zU7z1zs01zs03zU7y7s1zU0007y07y7y0Ts0TsDzw0Dzw0Ts0zkz0Dw0000zk0zkzk3z03z0zzw0zzw3z0Dy7s1zk0007y07y7y0Ts0Ts7zzk7zzkTzzzUz07y0000zk0zkzk3z03z0Tzz0Tzz3zzzw3s0zs0007y07y7y0Ts0Ts0zzs0zzsTzzy0T0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000004"
-global TextTravelDemonForest  := "|<>FFC85B-323232$201.000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000007zzs000000000000000000000000007zz1zzzs00000000000000000000000000zzsDzzzU0000000000000000000000000Dzz1zzzz00000000000000000000000001zzsDzzzw0000000000000000000000000Dzz1zzzzk0000000000000000000000001zzsDzzzz0000000000000000000000000Dzz1zzzzw0000000000000000000000001zzsDy0TzU000000000000000000000000Dy01zk0zy003U00000000007U000000001zk0Dy03zk07zk0TUz07k007zU0DkTU000Dy01zk0Dz03zzU3yTw3zU03zz01zDz0001zk0Dy00zs1zzy0zrzlzy01zzy0Tvzy000Dy01zk07z0Tzzs7zzzDzs0Tzzs3zzzs001zk0Dy00Ts7zzzUzzzzzzU7zzzUTzzz000Dzz1zk03zVzzzw7zzzzzw0zzzw3zzzw001zzsDy00TwDzzzkzzzzzzUDzzzkTzzzk00Dzz1zk03zVzsDy7zzzzzy1zzzy3zzzy001zzsDy00TwTy0zkzwTzXzkTy1zsTz3zk00Dzz1zk03zXzU7y7z1zsDy3zU7z3zk7z001zzsDy00TsTs0zkzs7z0zkTs0TsTw0zs00Dzz1zk03z3zzzy7z0zk7y3z03z3zU3z001zzsDy00zsTzzzkzk7y0zkTs0TsTs0Ts00Dy01zU0Dz3zzzw7y0zk7y3z03z3z03z001zU0Dw01zkTzzz0zk7y0zkTs0TsTs0Ts00Dw01zU0zy3zU007y0zk7y3z03z3z03z001zU0Dw0DzUTs000zk7y0zkTw0zsTs0Ts00Dw01zzzzw3zU007y0zk7y1zsTz3z03z001zU0Dzzzz0Dy0C0zk7y0zkDzzzkTs0Ts00Dw01zzzzk1zzzs7y0zk7y0zzzy3z03z001zU0Dzzzw07zzz0zk7y0zk7zzzUTs0Ts00Dw01zzzz00Tzzw7y0zk7y0Tzzs3z03z001zU0DzzzU03zzzUzk7y0zk1zzy0Ts0Ts00Dw00zzzs007zzs3y0zk7y07zzU1z03z000zU07zzs000Tzy0Tk3y0TU0Dzk0Ds0Dk007w000000000Tz00E0200E00Dk0000000004000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000004"
-global TextTravelDungeonTown  := "|<>FFCD60-323232$201.000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000TzzU000000000000000000000000000007zzzU00000000000000000000000000000zzzy000000000000000000000000000007zzzw00000000000000000000000000000zzzzk00000000000000000000000000007zzzz00000000000000000000000000000zzzzw00000000000000000000000000007zzzzk0000000000000000000000000000zs1zy00000000000000000000000000007z03zs00000000000000000Q0001s00000zs0Dz0z00z0z1y000TVy00zy001zs03w07z00zw7w0Dw7wzw00DzTs0Tzw00zzk0Tn0zs03zVzU1zVzjzs07zzz0Dzzk0TzzU7ys7z00TwDw0DwDzzzU1zzzs3zzz07zzy0zz0zs01zVzU1zVzzzw0Tzzz0zzzw1zzzs7zs7z00DyDw0DwDzzzk3zzzs7zzzUDzzz0zz0zs01zlzU1zVzzzz0zzzz1zzzy3zzzw7zs7z00DyDw0DwDzzzs7zzzsDz1zkTzzzUzz0zs01zlzU1zVzwDz1zsDz3zk7y7zUTy7zk7y00DwDw0DwDz0TwDy0zsTw0zkzs1zkzw0zk01zVzU1zVzk3zVzU7z3z07y7y07y7z07y00DwDw0DwDy0DwDw0TsTw3zkzk0zkzs0zk03zVzU1zVzU1zVz03z3zzzy7y07y7y07y00TwDw0DwDw0DwDw0TsTzzzUzk0zkzk0zk07z0zk1zVzU1zVzU7z3zzzs7y07y7y07y03zs7y0TwDw0DwDy0zsTw000zk0zkzk0zk0zy0zs7zVzU1zVzsTz3z0007z0Dy7y07z1zzk7znzwDw0Dw7zzzsTw000Ty7zUzk0zzzzw0TzzzVzU1zUzzzz1zk1k3zzzw7y07zzzz03zzzwDw0Dw3zzzsDzzz0Dzzz0zk0zzzzk0DzzzVzU1zUDzzz0zzzs1zzzs7y07zzzw00zzzwDw0Dw0zzzs3zzzU7zzy0zk0Tzzy003zxzVzU1zU3zvz0Dzzw0TzzU7y03zzzU00DzDw7w0Dw0DyTs0zzz00zzs0Tk0TzzU000Tkz0z00z00C3z01zzk03zw03w00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000004"
-global TextTravelReaperSociety := "|<>FFCC60-323232$201.000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000080zzzU000000000000000000000000000707zzz0000000000000000000000000003s1zzzw000000000000000000000000000z0Dzzzk00000000000000000000000000Ds1zzzz000000000000000000000000001z0Dzzzw00000000000000000000000000Ts1zzzzk00000000000000000000000003z0Dzzzy00000000000000000000000000zs1zk3zk00000000000000000000000007z0Dy07z00700000000000000Q00000000zk1zk0zs0DzU00TUy0z3w000zy03w7s007z0Dy03z07zz00DzDs7wzs00Tzw0TnzU00zs1zk0Ts3zzw03zzz1zzzk0Dzzk7zzy007z0Dy03z0zzzk1zzzsDzzz03zzz0zzzk00Ts1zk0TsDzzz0Dzzz1zzzw0zzzw7zzy003z0Dy07z1zzzs3zzzsDzzzU7zzzUzzzU00Ds1zk1zsTzzzUzzzz1zzzy1zzzy7zzw001z0Dzzzy3zkTw7zzzsDzzzkDz1zkzzz0007s1zzzzkzw1zVzwTz1zwDz3zk7y7zU0000D0Dzzzw7z0DwDy0zsDz0zsTw0zkzs00000M1zzzz0zk1zVzU7z1zk3z3z07y7z0000000Dzzzs7z0zwDw0TsDy0DsTw3zkzk0000001zzzz0zzzzVzU3z1zU1z3zzzy7y0000000Dzzzs7zzzsDw0TsDw0DsTzzzUzk0000001zzzz0zzzy1zU3z1zk3z3zzzs7y00001s0DzyTw7z000Dy0zsDy0TsTw000zk0000TU1zU3zUzk001zkDz1zwDz3z0007y00007y0Dw0Dy7z0007zrzsDzzzkTw000zk0000zs1zU1zkTw0Q0zzzz1zzzy1zk1k7y00007z0Dw07y3zzzk3zzzsDzzzUDzzz0zk0000zs1zU0zsDzzy0Tzzz1zzzs0zzzs7y00003z0Dw03z0zzzs1zzzsDzzy03zzzUzk0000Ds0zU0Ts3zzz07zzz1zzzU0Dzzw7y00000z07w01z0Dzzk0DzDsDwzs00zzz0Tk00003s0zU0Dk0zzw00zlz1zVs003zzk3y00000700000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000004"
 global Text34 := "|<>E14A47-323232$71.0000000000000000000000000007k1Uk0000000zs7Xs0000003zsD7k000000DzkSDU000000TDlwT0000000w7Xsy0000000kD7Vw00000007yD3s0000000Tsy7k0000000zVwDU0000001zXzz00000001zbzy00000000DDzw0000007USTzs000000D0w07k000000T3s0DU000000Tzk0T0000000zz00y0000000zw00s0000000TU01k000000000000000000000000000000000000001"
 global Text33 := "|<>E14B48-0.90$71.0000000000000001A04k0000000Dy0zs0000000zy3zs0000003zwDzk0000007nwTDk000000D1sw7U000000A3kkD00000000zU3y00000003y0Ds0000000Ds0zU0000000Ts1zU0000000Ts1zU00000003k0D0000001s7bUS0000003kDD0w0000007kyT3s0000007zwTzk0000007zkTz000000000000000000000000000000000000000000000000000000000000000000000000001"
 global Text32 := "|<>E65452-323232$71.000000000000000000000000000000000000000T01s00000003zUDw0000000DzUzw0000000zz3zw0000001wzDrs0000003kST3s00000030ww3k0000000Dts7U0000001zXkT00000003y01y00000007y07s00000007y0TU00000000w3y0000000S1sDs0000000w3kz00000001wDXy00000001zzDzy0000003zwTzw0000003zkzzs0000001y0zzU000000000000000000000000001"
@@ -185,19 +178,19 @@ global Text6  := "|<>D83A36-323232$71.000000000000000000000000000000000000000003
 global Text5  := "|<>E34D4B-323232$71.00000000000000000000000000000000000000000zk0000000007zk000000000DzU000000000Tz0000000000zw0000000001s00000000003k0000000000Dw0000000000Ty0000000000zy0000000001zy0000000001vw00000000001s00000000003k00000000007U000000000wT0000000001zy0000000003zs0000000003zU0000000001w00000000000000000000000000001"
 global Text4  := "|<>E5514E-323232$71.00000000000000000U80000000003lw0000000007Xs000000000D7k000000000yDU000000001wT0000000003ky0000000007Vw000000000T3s000000000y7k000000001zzU000000003zz0000000007zy000000000Dzw00000000003s00000000007k0000000000DU0000000000T00000000000Q00000000000s0000000000000000000000000000000000000000000000000001"
 global Text2  := "|<>DD4441-323232$71.00000000000000000000000000000D00000000001zU0000000007zU000000000TzU000000001zz0000000003sT0000000007US000000000D0w000000000S3s0000000000Dk0000000000z00000000003y0000000000Ts0000000001z0000000000Dw0000000000Tk0000000001zzk000000003zzU000000007zz0000000007zw0000000000000000000000000000000000000001"
-global Text3  := "|<>EE6160-323232$71.00000000000000000000000000000000000000000y00000000007z0000000000Tz0000000001zy0000000003sy0000000007Uw00000000061s0000000000Tk0000000001z00000000007w00000000007w0000000000Dw00000000001s000000000w3k000000001s7U000000003sT0000000003zy0000000000000000000000000000000000000000000000000000000000000001"
+global Text3  := ""  ; TODO: capture 3-enemy count pattern with FindText tool
 global Text1  := "|<>DF4744-323232$71.00000000000000000000000000000000000000000000000000000100000000000DU0000000000z00000000003y0000000000Dw0000000000zs0000000001zk0000000003zU0000000003T00000000000y00000000001w00000000003s00000000007k0000000000DU0000000000T00000000000y00000000001w00000000003s00000000003k0000000000700000000000000001"
 global TextAVActive  := "|<>FFFFFF-323232$181.0000000Tzzzzzs00Tzzzzzs00000000000000Dzzzzzw00Dzzzzzw000000000000007zzzzzy007zzzzzy000000000000003zzzzzz003zzzzzz000000000000001zzzzzzU01zzzzzzU00000000000000zzzzzzk00kDzzzzk00000000000000Tzzzzzs0001zzzzs0000000000000MDzztzzw000kzzzzw000003U000000z3zzU7zy001yDzzzw000003w007z00TVzzU1zz000z7zzzy000001y00Dzs0DkzzXszzU00TXzzzz000000z00Tzz07sTzlyTzk00DlzzzzU00000TU0Tzzk3wDzsz7zs007szzzzk00000Dk0Tzzw1y7zwTXzw001szzzzs000007s0Tzzz0z3zyDlzy0000Tzzzw000003w0Dy3zkTU3w7s7y0020M10Dy000001y0Dw0TsDk0Q3w0w00000003z000000z0Dw07y7sw6DzwM71s7US3UTUzk00wTU7w01z3xzUDzz8Tty7sTby7Vzy01zDk3y00zVzzw7zzUTzz3wDzzXVzzU3zzs1y00Dkzzz3zzkTzzVy7zzslzzs3zzw1z007wTzzVzzsTzzkz3zzy1zzy3zzy0zU03yDzzszzwDzzsTVzzz1zzz1zzz0Tk01z7zzyDzwDzzwDkzzzkzkTVzzzUDs00zXz3z0z07w7y7sTsDsTkDszUzk7w00Tlz0zUTU7w1z3wDs7wTk7wTkDs1y00DkzUDkDlny0zVy7slyDzzwDk7w0zU0DsTU7s7stz0Tkz3wMz7zzy7s3y0Tk07wDs3w3wQzUDsTVyATXzzy3w1z0Dw07w7w3y1y2Dk7wDkz6DlzU01z0zU3zUDy3z3z0z07w7y7sTX7sTU00zkzk0zwTy1zzzYTk3zzz3wDlXwDs00Tzzs0Tzzz0zzzWDzUzzzVy7sly7z3s7zzw0"
 global TextNightmare := "|<>FFB447-323232$141.00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000E000U000000000000000000D000S0000000000000003s1tw003s01k000000000000T0DD000T00S0000000000003w1sE003s03k000000000000TkD0000T00S0000000000003z1s0003s03k000000000000TsD70SQTS1zstsS0DC7D0zU3zVtsDzXzwDzDzbs3ztzwTy0TyDDXzwTzlztzzzUzzDzbzs3vttwTzXzyDzDzzwDztzszT0TDDDblwTbsS1yzjXwzDUDVs3tztww7XsT3kDXsyT3tw1wD0T7zDbUwT1sS1wT7nkTDUDzs3sTtww7XsD3kDXsyS3tw1zz0T1zDblwT1sS1wT7nsTDUDU03sDtwTzXsD3sDXsyTztw1w00T0zDXzwT1sTtwT7lzzDU7zk3s3tsDzXkD1zDXsy7ztw0zz0S0DD0ywS1s7tsC3UTzD03zs1k0ks07Vk60C71kQ0kks07w0000000w000000000000000000000ADU000000000000000000001zs000000000000000000000Tz0000000000000000000000zU00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000004"
 global TextMedium    := "|<>FFBC4C-323232$141.0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000620000000000000000000001ts0000000000000DU0S0000DDU0000000000001w07k0001ts0000000000000Dk1y0000D200000000000001z0Tk0001s00000000000000Dw3y0000D000000000000001zkzkDs1tssQ3lnkw0000000DyDy7zUTzD7USTzDk0000001zvzlzy7ztwy3nzzz0000000DjzSDrlzzDbkSTzzs0000001wznnsSDbtwy3nxzT0000000DbwST3nsTDbkST7lw0000001wT3nzyS3twy3nsyDU000000DVsSTznkTDbkST7lw0000001w43ns0T3twS7nsyDU000000DU0ST01zzD3zyT7lw0000001s03lyQDztsTznky7U000000D00S7zkzzD1zyS7kw0000000s03kTy3zss7vlkQ70000000200A0z024604AA10E0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000004"
 global TextEasy      := "|<>FFD258-323232$141.00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000zw000000000000000000000Tzs000000000000000000007zz000000000000000000000zzs000000000000000000007zz000000000000000000000y00000000000000000000007k00wsDsQ1k0000000000000y00DzXzrUT00000000000007zs3zwTwy3k0000000000000zz0zzXV3ky00000000000007zsDnwQ0T7U0000000000000zz1sDXw1sw00000000000007k0D1wTwDj00000000000000w01sDVzkzs00000000000003U0DVw1y3z00000000000000S00yTU1kTk00000000000003zz7zwQS1w0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000004"
 global TextHard      := "|<>FFC752-323232$141.00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000M00000000000000000000007U0000000000007U7U000000w0000000000000y0w0000007U0000000000007k7k000000w0000000000000y0y0000007U0000000000007k7k000000w0000000000000y0y1tkts7bU0000000000007k7kTzDzVzw0000000000000zzy7ztzwTzU0000000000007zzlzzDz7zw0000000000000zzyTbtw0yTU0000000000007zzXsTDUDVw0000000000000y0wS3ts1s7U0000000000007k7XkTD0D1w0000000000000w0wT3ts1wDU0000000000007U7VxzD07nw0000000000000w0wDzts0zzU0000000000003U7Uzz703zw0000000000000Q0Q3xks0DrU0000000000000000002000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000004"
-global TextLoaded := "|<>F9FFFA-323232$71.0000000000000000000000000000000003U0Tzk000000700zzU000000C003U0000000Q00700000000s00C7wDwsCDlk00QDsztkQznU00sTnznlvnr001ks77XXb3i003VkC77iDyQ0073UQC7wTss00C70ww7ks1k00QC0zsDVzns00sQ0zkC1zbk01UM0n080y3U00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000001"
+global TextLoaded := "|<>FFFFFF-323232$181.0000000Tzzzzzs00Tzzzzzs00000000000000Dzzzzzw00Dzzzzzw000000000000007zzzzzy007zzzzzy000000000000003zzzzzz003zzzzzz000000000000001zzzzzzU01zzzzzzU00000000000000zzzzzzk00kDzzzzk00000000000000Tzzzzzs0001zzzzs0000000000000MDzztzzw000kzzzzw000003U000000z3zzU7zy001yDzzzw000003w007z00TVzzU1zz000z7zzzy000001y00Dzs0DkzzXszzU00TXzzzz000000z00Tzz07sTzlyTzk00DlzzzzU00000TU0Tzzk3wDzsz7zs007szzzzk00000Dk0Tzzw1y7zwTXzw001szzzzs000007s0Tzzz0z3zyDlzy0000Tzzzw000003w0Dy3zkTU3w7s7y0020M10Dy000001y0Dw0TsDk0Q3w0w00000003z000000z0Dw07y7sw6DzwM71s7US3UTUzk00wTU7w01z3xzUDzz8Tty7sTby7Vzy01zDk3y00zVzzw7zzUTzz3wDzzXVzzU3zzs1y00Dkzzz3zzkTzzVy7zzslzzs3zzw1z007wTzzVzzsTzzkz3zzy1zzy3zzy0zU03yDzzszzwDzzsTVzzz1zzz1zzz0Tk01z7zzyDzwDzzwDkzzzkzkTVzzzUDs00zXz3z0z07w7y7sTsDsTkDszUzk7w00Tlz0zUTU7w1z3wDs7wTk7wTkDs1y00DkzUDkDlny0zVy7slyDzzwDk7w0zU0DsTU7s7stz0Tkz3wMz7zzy7s3y0Tk07wDs3w3wQzUDsTVyATXzzy3w1z0Dw07w7w3y1y2Dk7wDkz6DlzU01z0zU3zUDy3z3z0z07w7y7sTX7sTU00zkzk0zwTy1zzzYTk3zzz3wDlXwDs00Tzzs0Tzzz0zzzWDzUzzzVy7sly7z3s7zzw0"
 global Text0  := "|<>D83A37-323232$71.00000000000000000000000000000T00000000003z0000000000Dz0000000000zz0000000001zz0000000003ky000000000DUw000000000S1s000000000w3k000000001s7U000000003kD0000000007US000000000D0w000000000T1s000000000y7k000000000yTU000000001zy0000000001zw0000000001zk0000000001y00000000000000000000000000000000000000001"
 ; ================================================================
 ;   GUI SETUP  —  Modern dark card layout
 ; ================================================================
-MyGui := Gui("+AlwaysOnTop -Caption +Border", "DenniXD ATS Macro V2.4.6")
+MyGui := Gui("+AlwaysOnTop -Caption +Border", "DenniXD ATS Macro V2.4.3")
 MyGui.BackColor := "0D0D0D"
 OnMessage(0x0201, WM_LBUTTONDOWN)
 WM_LBUTTONDOWN(wParam, lParam, msg, hwnd) {
@@ -215,7 +208,7 @@ MyGui.AddText("x0 y0 w430 h3 Background7B2FFF", "")   ; purple accent strip
 MyGui.SetFont("s13 cFFFFFF Bold", "Segoe UI")
 MyGui.AddText("x16 y14 w300", "DenniXD ATS MACRO")
 MyGui.SetFont("s8 c555555 Norm", "Segoe UI")
-MyGui.AddText("x16 y32 w300", "V2.4.6  ·  Double Dungeon + Abandon Village")
+MyGui.AddText("x16 y32 w300", "V2.4.3  ·  Double Dungeon + Abandon Village")
 
 ; Close [ X ]
 MyGui.SetFont("s10 cFF4455 Bold", "Segoe UI")
@@ -439,22 +432,7 @@ F1:: StartMacro()
 F2:: StopMacro()
 F3:: KillAll()
 F4:: TogglePause()
-F5:: TravelToGamemode(true)
-F7:: (EditorOpen ? StartEditorRecording(true) : 0)
-F8:: (EditorOpen ? StartEditorRecording(false) : 0)
-F9:: (EditorOpen ? StopEditorRecording() : 0)
-~*a:: EditorCaptureKey("a")
-~*d:: EditorCaptureKey("d")
-~*w:: EditorCaptureKey("w")
-~*s:: EditorCaptureKey("s")
-~*f:: EditorCaptureKey("f")
-~*e:: EditorCaptureKey("e")
-~*r:: EditorCaptureKey("r")
-~*q:: EditorCaptureQ()
-~*Space:: EditorCaptureKey("Space")
-~*Enter:: EditorCaptureKey("Enter")
-~*\:: EditorCaptureKey("\")
-~*LButton:: EditorCaptureMouse()
+F5:: Execute_ResetTravelUI()
 ; ================================================================
 ;   CORE LOGIC
 ; ================================================================
@@ -716,7 +694,6 @@ RunDemonSlayer() {
     ; ── Entry check: wait up to 90s for Text2 (2 enemies = stage loaded) ──
     ; Just keep polling — do NOT re-run entry sequence as it resets position
     GuiStatus.Text := "Abandon Village — Waiting for enemies..."
-    ftAV := GetFindText()
     EntryDeadline := A_TickCount + 90000  ; 90s total wait
     Loop {
         if (!Running)
@@ -746,7 +723,7 @@ RunDemonSlayer() {
             GuiStatus.Text := "Abandon Village — Stage confirmed via difficulty"
             break
         }
-        if ftAV.FindText(&FoundX, &FoundY, StartX, StartY, EndX, EndY, 0.15, 0.15, Text2) {
+        if GetFindText().FindText(&FoundX, &FoundY, StartX, StartY, EndX, EndY, 0.15, 0.15, Text2) {
             AVEntryFails  := 0
             EntryFailCount := 0
             GuiStatus.Text := "Abandon Village — Stage confirmed"
@@ -755,7 +732,6 @@ RunDemonSlayer() {
         Sleep(1000)
     }
     ; Text2 already confirmed — run Step1 immediately
-    ftAV := GetFindText()
     GuiStatus.Text := "Abandon Village — Step 1"
     RunCustomOrDefault("AV_Step1",      (*) => 0)
     ; Watch for TextAVActive (win condition)
@@ -770,10 +746,10 @@ RunDemonSlayer() {
             ReturnToLobby()
             return
         }
-        if ftAV.FindText(&FoundX, &FoundY, 860, 341, 1055, 391, 0.15, 0.15, TextAVActive) {
+        if GetFindText().FindText(&FoundX, &FoundY, 860, 341, 1055, 391, 0.15, 0.15, TextAVActive) {
             Sleep(1000)
             ; Double check it's still there
-            if ftAV.FindText(&FoundX, &FoundY, 860, 341, 1055, 391, 0.15, 0.15, TextAVActive) {
+            if GetFindText().FindText(&FoundX, &FoundY, 860, 341, 1055, 391, 0.15, 0.15, TextAVActive) {
                 DemonRuns += 1
                 GuiStatus.Text := "● Done  [AV: " . DemonRuns . "]"
                 Sleep(5000)
@@ -787,7 +763,7 @@ RunDemonSlayer() {
 }
 RunDoubleDungeon() {
     ; CurrentRaidStep: 0 = not started, 1 = entered (waiting), 2+ = slot index into GM_DD
-    global Running, CurrentRaidStep, DungeonRuns, RaidStartTime, EntryFailCount
+    global Running, CurrentRaidStep, DungeonRuns, DDRunsSinceReset, RaidStartTime, EntryFailCount
     global SlotTriggers, GM_DD, CustomSeqs, StartX, StartY, EndX, EndY
     if (!Running)
         return
@@ -805,9 +781,15 @@ RunDoubleDungeon() {
         if (slots.Length < 2) {
             ; Only entry slot exists — run complete
             DungeonRuns += 1
-                    GuiStatus.Text := "● Done  [DD: " . DungeonRuns . "]"
+            DDRunsSinceReset += 1
+            GuiStatus.Text := "● Done  [DD: " . DungeonRuns . "]"
             Sleep(5000)
             CaptureAndSend(false)
+            if (DDRunsSinceReset >= 3) {
+                DDRunsSinceReset := 0
+                GuiStatus.Text := "DD — 3 runs done, resetting TravelUI..."
+                Execute_ResetTravelUI()
+            }
             ReturnToLobby()
             CurrentRaidStep := 0
             return
@@ -816,13 +798,12 @@ RunDoubleDungeon() {
         trig2    := SlotTriggers.Has(slot2["key"]) ? SlotTriggers[slot2["key"]] : slot2["trigger"]
         textVar2 := DDResolveTextVar(trig2)
         GuiStatus.Text := "Double Dungeon — Waiting to enter stage..."
-        ftDD := GetFindText()
         EntryDeadline := A_TickCount + 90000
         Loop {
             if (!Running)
                 return
             ; Direct Text12 check (12 enemies = original entry confirm method)
-            if ftDD.FindText(&FoundX, &FoundY, StartX, StartY, EndX, EndY, 0.15, 0.15, Text12) {
+            if GetFindText().FindText(&FoundX, &FoundY, StartX, StartY, EndX, EndY, 0.15, 0.15, Text12) {
                 GuiStatus.Text := "Double Dungeon — Stage confirmed (12 enemies)"
                 break
             }
@@ -834,7 +815,7 @@ RunDoubleDungeon() {
             ; Specific trigger enemy count visible
             if (textVar2 != "") {
                 try {
-                    if ftDD.FindText(&FoundX, &FoundY, StartX, StartY, EndX, EndY, 0.15, 0.15, %textVar2%) {
+                    if GetFindText().FindText(&FoundX, &FoundY, StartX, StartY, EndX, EndY, 0.15, 0.15, %textVar2%) {
                         GuiStatus.Text := "Double Dungeon — Stage confirmed (" trig2 ")"
                         break
                     }
@@ -905,72 +886,41 @@ RunDoubleDungeon() {
                 GuiStatus.Text := "Double Dungeon — " slot["label"] " — no pattern for '" trigger "', skipping wait"
                 Sleep(500)
             } else {
-                ; Ensure Roblox is focused and search area is fresh before scanning
-                if WinExist(RobloxTitle) {
-                    WinActivate(RobloxTitle)
-                    WinWaitActive(RobloxTitle, , 2)
-                }
-                UpdateSearchArea()
-
-                ; Fused detection — single instance, direct check first then two-phase
-                ft := GetFindText()
-
-                ; Quick direct check — if count already visible, proceed immediately
-                directFound := false
-                try {
-                    if ft.FindText(&FoundX, &FoundY, StartX, StartY, EndX, EndY, 0.15, 0.15, %textVar%)
-                        directFound := true
-                }
-                if (!directFound) {
-                    ; Phase 1: wait up to 15s for previous count to DISAPPEAR
-                    clearDeadline := A_TickCount + 15000
-                    Loop {
-                        if (!Running)
-                            return
-                        if (A_TickCount > clearDeadline)
-                            break
-                        stillVisible := false
-                        try {
-                            if ft.FindText(&FoundX, &FoundY, StartX, StartY, EndX, EndY, 0.15, 0.15, %textVar%)
-                                stillVisible := true
-                        }
-                        if (!stillVisible)
-                            break
-                        Sleep(100)
+                ; Phase 1: wait for trigger count to DISAPPEAR first (enemy killed, count changed)
+                ; This prevents instantly firing when the same count is still on screen from prev step
+                clearDeadline := A_TickCount + 5000
+                Loop {
+                    if (!Running)
+                        return
+                    if (A_TickCount > clearDeadline)
+                        break  ; gave up waiting for it to clear — proceed to trigger wait
+                    stillVisible := false
+                    try {
+                        if GetFindText().FindText(&FoundX, &FoundY, StartX, StartY, EndX, EndY, 0.15, 0.15, %textVar%)
+                            stillVisible := true
                     }
+                    if (!stillVisible)
+                        break  ; count gone — now watch for it to return
+                    Sleep(200)
+                }
 
-                    ; Phase 2: wait up to 30s for new count to appear and be stable
-                    stepDeadline := A_TickCount + 30000
-                    Loop {
-                        if (!Running)
-                            return
-                        if (A_TickCount > stepDeadline) {
-                            GuiStatus.Text := "Double Dungeon — " slot["label"] " — 30s passed, running anyway"
-                            break
-                        }
-                        found := false
-                        try {
-                            if ft.FindText(&FoundX, &FoundY, StartX, StartY, EndX, EndY, 0.15, 0.15, %textVar%)
-                                found := true
-                        }
-                        if (found) {
-                            ; Stability check — confirm twice over 200ms
-                            Sleep(100)
-                            c1 := false, c2 := false
-                            try {
-                                if ft.FindText(&FoundX, &FoundY, StartX, StartY, EndX, EndY, 0.15, 0.15, %textVar%)
-                                    c1 := true
-                            }
-                            Sleep(100)
-                            try {
-                                if ft.FindText(&FoundX, &FoundY, StartX, StartY, EndX, EndY, 0.15, 0.15, %textVar%)
-                                    c2 := true
-                            }
-                            if (c1 && c2)
+                ; Phase 2: wait up to 30s for trigger count to appear
+                stepDeadline := A_TickCount + 30000
+                Loop {
+                    if (!Running)
+                        return
+                    if (A_TickCount > stepDeadline) {
+                        GuiStatus.Text := "Double Dungeon — " slot["label"] " — 30s passed, running anyway"
+                        break
+                    }
+                    try {
+                        if GetFindText().FindText(&FoundX, &FoundY, StartX, StartY, EndX, EndY, 0.15, 0.15, %textVar%) {
+                            Sleep(200)
+                            if GetFindText().FindText(&FoundX, &FoundY, StartX, StartY, EndX, EndY, 0.15, 0.15, %textVar%)
                                 break
                         }
-                        Sleep(100)
                     }
+                    Sleep(300)
                 }
                 if (!Running)
                     return
@@ -981,9 +931,11 @@ RunDoubleDungeon() {
         GuiStatus.Text := "Double Dungeon — Running " slot["label"]
         RunCustomOrDefault(key, (*) => 0)
 
-        ; Pause: 2s flat between slots
-        GuiStatus.Text := "Double Dungeon — " slot["label"] " done — next slot..."
-        Sleep(2000)
+        ; Pause: sequence total duration + 1s
+        seqDur  := CustomSeqs.Has(key) ? CalcSeqDuration(CustomSeqs[key]) : 0
+        pauseMs := seqDur + 1000
+        GuiStatus.Text := "Double Dungeon — " slot["label"] " done — pausing " Round(pauseMs/1000, 1) "s"
+        Sleep(pauseMs)
 
         ; Advance
         CurrentRaidStep := idx + 1
@@ -996,10 +948,16 @@ RunDoubleDungeon() {
 
     ; All slots done — run complete
     DungeonRuns += 1
+    DDRunsSinceReset += 1
     CurrentRaidStep := 0
     GuiStatus.Text := "● Done  [DD: " . DungeonRuns . "]"
     Sleep(5000)
     CaptureAndSend(false)
+    if (DDRunsSinceReset >= 3) {
+        DDRunsSinceReset := 0
+        GuiStatus.Text := "DD — 3 runs done, resetting TravelUI..."
+        Execute_ResetTravelUI()
+    }
     ReturnToLobby()
 }
 
@@ -1204,11 +1162,12 @@ UpdateSearchArea() {
         return
     }
     WinGetPos(&wx, &wy, &ww, &wh, RobloxTitle)
-    ; Fixed enemy count scan area (absolute coords)
-    StartX := 656
-    StartY := 46
-    EndX   := 778
-    EndY   := 88
+    ; Cast a wide net — full width, top 25% of window
+    ; Better to scan more area than to miss the enemy count UI
+    StartX := wx
+    StartY := wy
+    EndX   := wx + ww
+    EndY   := wy + Round(wh * 0.25)
 }
 
 
@@ -1511,169 +1470,6 @@ RobloxClick(x, y) {
     BlockInput("Off")
 }
 ; Returns to lobby and resets raid state so Double Dungeon can start fresh
-; ── TravelToGamemode — scans map name and navigates to correct gamemode portal ──
-; isStart: true = first travel after rejoin, false = post-run return
-TravelToGamemode(isStart := false) {
-    global RobloxTitle, Running, ModeAbandonVillage, ModeDoubleDungeon, ModeRift
-    global CurrentRaidStep, RaidStartTime
-    global TextTravelLobby, TextTravelNamex, TextTravelColosseum
-    global TextTravelDemonForest, TextTravelDungeonTown, TextTravelReaperSociety
-    local fx, fy, gm, key
-
-    CurrentRaidStep := 0
-    RaidStartTime   := 0
-    if (!Running)
-        return
-
-    if WinExist(RobloxTitle) {
-        WinActivate(RobloxTitle)
-        WinWaitActive(RobloxTitle, , 3)
-    }
-
-    ; Determine target gamemode
-    if (ModeRift)
-        gm := "Rift"
-    else if (ModeDoubleDungeon)
-        gm := "DD"
-    else
-        gm := "AV"
-
-    GuiStatus.Text := "Travel — opening map..."
-    BlockInput("On")
-
-    ; ── Base navigation ──
-    SafeClick(500, 500), Sleep(200)
-    Send("{f down}"), Sleep(110), Send("{f up}"), Sleep(100)
-    Send("{\ down}"), Sleep(109), Send("{\ up}"), Sleep(100)
-    Send("{s down}"), Sleep(94),  Send("{s up}"), Sleep(100)
-    Send("{d down}"), Sleep(78),  Send("{d up}"), Sleep(100)
-    Send("{s down}"), Sleep(94),  Send("{s up}"), Sleep(100)
-
-    BlockInput("Off")
-    Sleep(500)
-
-    ; ── Resolve target destination ──
-    ; AV + DD → DemonForest | Rift → DungeonTown
-    dest := (gm == "Rift") ? "DungeonTown" : "DemonForest"
-
-    ; ── Check if already at destination ──
-    GuiStatus.Text := "Travel — checking if at " dest "..."
-    ft := GetFindText()
-    alreadyThere := false
-    if (gm == "Rift") {
-        if ft.FindText(&fx, &fy, 683, 54, 747, 84, 0.15, 0.15, TextTravelDungeonTown)
-            alreadyThere := true
-    } else {
-        if ft.FindText(&fx, &fy, 683, 54, 747, 84, 0.15, 0.15, TextTravelDemonForest)
-            alreadyThere := true
-    }
-    if (alreadyThere) {
-        BlockInput("On")
-        Send("{\ down}"), Sleep(110), Send("{\ up}")
-        Sleep(1000)
-        Send("{f down}"), Sleep(110), Send("{f up}")
-        BlockInput("Off")
-        GuiStatus.Text := "Travel — already at " dest " — done"
-        Sleep(1000)
-        return
-    }
-
-    ; ── Not there yet — scan current location ──
-    GuiStatus.Text := "Travel — detecting location..."
-    loc := "unknown"
-    if ft.FindText(&fx, &fy, 683, 54, 747, 84, 0.15, 0.15, TextTravelLobby)
-        loc := "Lobby"
-    else if ft.FindText(&fx, &fy, 683, 54, 747, 84, 0.15, 0.15, TextTravelNamex)
-        loc := "Namex"
-    else if ft.FindText(&fx, &fy, 683, 54, 747, 84, 0.15, 0.15, TextTravelColosseum)
-        loc := "Colosseum"
-    else if ft.FindText(&fx, &fy, 683, 54, 747, 84, 0.15, 0.15, TextTravelDungeonTown)
-        loc := "DungeonTown"
-    else if ft.FindText(&fx, &fy, 683, 54, 747, 84, 0.15, 0.15, TextTravelReaperSociety)
-        loc := "ReaperSociety"
-
-    GuiStatus.Text := "Travel — at: " loc " | going to: " dest " (" gm ")"
-
-    BlockInput("On")
-
-    ; ── Navigate based on location + destination ──
-    ; Lobby / unknown = default starting position in the menu
-    if (loc == "Lobby" || loc == "unknown")
-        loc := "Lobby"
-
-    if (isStart) {
-        ; ── START flow ──
-        if (dest == "DemonForest") {
-            if (loc == "Lobby" || loc == "Namex") {
-                Loop 9 {
-                    Send("{s down}"), Sleep(94), Send("{s up}")
-                    Sleep(50)
-                }
-            } else if (loc == "DungeonTown") {
-                Loop 6 {
-                    Send("{w down}"), Sleep(94), Send("{w up}")
-                    Sleep(50)
-                }
-                Loop 4 {
-                    Send("{s down}"), Sleep(94), Send("{s up}")
-                    Sleep(50)
-                }
-            }
-        } else if (dest == "DungeonTown") {
-            if (loc == "Lobby" || loc == "Namex") {
-                Loop 8 {
-                    Send("{s down}"), Sleep(94), Send("{s up}")
-                    Sleep(50)
-                }
-            } else if (loc == "DemonForest") {
-                ; DemonForest is below DungeonTown — press W to go up
-                Loop 2 {
-                    Send("{w down}"), Sleep(94), Send("{w up}")
-                    Sleep(50)
-                }
-            }
-        }
-    } else {
-        ; ── POST-RUN flow ──
-        if (dest == "DemonForest") {
-            if (loc == "Lobby" || loc == "Namex") {
-                Loop 7 {
-                    Send("{s down}"), Sleep(94), Send("{s up}")
-                    Sleep(50)
-                }
-            } else if (loc == "DungeonTown") {
-                Loop 9 {
-                    Send("{s down}"), Sleep(94), Send("{s up}")
-                    Sleep(50)
-                }
-            }
-        } else if (dest == "DungeonTown") {
-            if (loc == "Lobby" || loc == "Namex") {
-                Loop 11 {
-                    Send("{s down}"), Sleep(94), Send("{s up}")
-                    Sleep(50)
-                }
-            } else if (loc == "DemonForest") {
-                ; DemonForest is below DungeonTown — press W to go up
-                Loop 3 {
-                    Send("{w down}"), Sleep(94), Send("{w up}")
-                    Sleep(50)
-                }
-            }
-        }
-    }
-
-    ; Confirm selection with \ then F
-    Send("{\ down}"), Sleep(110), Send("{\ up}")
-    Sleep(1000)
-    Send("{f down}"), Sleep(110), Send("{f up}")
-    Sleep(500)
-    Send("{\ down}"), Sleep(110), Send("{\ up}")
-    BlockInput("Off")
-    Sleep(1000)
-    GuiStatus.Text := "Travel done — ready for next cycle"
-}
-
 Execute_ReturnToLobby() {
     if WinExist(RobloxTitle) {
         WinActivate(RobloxTitle)
@@ -1747,19 +1543,21 @@ Execute_ResetTravelUI() {
 }
 
 ReturnToLobby() {
-    global RobloxTitle
+    global CurrentRaidStep, RaidStartTime, RobloxTitle, Running
+    CurrentRaidStep := 0
+    RaidStartTime   := 0
+    if (!Running)
+        return
     if WinExist(RobloxTitle) {
         WinActivate(RobloxTitle)
         WinWaitActive(RobloxTitle, , 3)
     }
-    BlockInput("On")
-    SafeClick(500, 500)
-    Sleep(200)
-    Send("{f down}"), Sleep(110), Send("{f up}")
-    Sleep(500)
-    SafeClick(1237, 601)
-    Sleep(500)
-    BlockInput("Off")
+    GuiStatus.Text := "Returning to lobby..."
+    Execute_ReturnToLobby()
+    ; Wait for lobby to load before next cycle
+    Sleep(3000)
+    GuiStatus.Text := "Back in lobby — ready for next cycle"
+    ; MainLoop timer re-arms itself — cycle continues automatically
 }
 
 ; ── Mode toggle — flips enabled state, updates button colour, WIP modes blocked ──
@@ -1887,7 +1685,8 @@ ResetStats(*) {
     if (MsgBox("Reset all stats?", "Confirm", "YesNo") == "Yes") {
         DemonRuns       := 0
         DungeonRuns     := 0
-            EntryFailCount      := 0
+        DDRunsSinceReset    := 0
+        EntryFailCount      := 0
         RejoinCount     := 0
         CurrentRaidStep := 0
         SessionStart    := A_TickCount
@@ -1939,7 +1738,7 @@ CaptureAndSend(IsManualTest := false) {
     Duration := h . "h " . m . "m " . s . "s"
     global RiftRuns, RaidRuns, RaidType, CustomRuns, CustomRunName
     currStatus := MacroPaused ? "⏸ Paused" : "● Running"
-    Payload := '{"embeds": [{"title": "DenniXD ATS Macro V2.4.6","color": 8323327,'
+    Payload := '{"embeds": [{"title": "DenniXD ATS Macro V2.4.3","color": 8323327,'
              . '"image": {"url": "attachment://ss.png"},'
              . '"fields": ['
              . '{"name": "🗡 Abandon Village",  "value": "' . DemonRuns   . ' runs", "inline": true},'
@@ -1950,7 +1749,7 @@ CaptureAndSend(IsManualTest := false) {
              . '{"name": "🔄 Rejoined",        "value": "' . RejoinCount . ' times", "inline": true},'
              . '{"name": "⏱ Uptime",          "value": "' . Duration    . '", "inline": true},'
              . '{"name": "📊 Status",          "value": "' . currStatus  . '", "inline": true}'
-             . '],"footer": {"text": "DenniXD ATS V2.4.6  ·  ' . FormatTime(, "HH:mm:ss") . '"}}]}'
+             . '],"footer": {"text": "DenniXD ATS V2.4.3  ·  ' . FormatTime(, "HH:mm:ss") . '"}}]}'
     try {
         FileOpen(JsonPath, "w", "UTF-8").Write(Payload)
         RunWait('curl.exe -s -F "payload_json=<' JsonPath '" -F "file=@' SSPath '" "' EditWeb.Value '"', , "Hide")
@@ -2023,7 +1822,7 @@ GenerateDefaultFiles() {
     global FolderCustom, FolderRaids, FolderSummon
 
     hdr := "; ================================================================`n"
-          . "; DenniXD ATS Macro V2.4.5 — Movement File (auto-generated)`n"
+          . "; DenniXD ATS Macro V2.4.3 — Movement File (auto-generated)`n"
           . "; Edit steps freely. Reload via Settings > Movement Files.`n"
           . "; Format:  SlotKey|key|keyname|ms  /  |click|x|y|ms  /  |sleep|ms`n"
           . "; ================================================================`n`n"
@@ -2669,7 +2468,7 @@ RejoinPS() {
                 break
             }
             try {
-                if GetFindText().FindText(&fx, &fy, 18, 526, 116, 616, 0, 0, TextLoaded) {
+                if GetFindText().FindText(&fx, &fy, 860, 341, 1055, 391, 0, 0, TextLoaded) {
                     gameLoaded := true
                     GuiStatus.Text := "Game loaded — waiting 5s..."
                     break
@@ -2685,7 +2484,7 @@ RejoinPS() {
                 WinWaitActive(RobloxTitle, , 5)
                 UpdateSearchArea()  ; recalculate for potentially new window size
                 GuiStatus.Text := "Running ResetTravelUI..."
-                TravelToGamemode(true)
+                Execute_ResetTravelUI()
                 Sleep(1000)
             }
         }
@@ -2754,7 +2553,7 @@ OpenSequenceEditor() {
     EditorGamemode := "DD"
     EditorSlotKey  := "DD_EnterRaid"
 
-    EditorGui := Gui("+AlwaysOnTop -MaximizeBox", "Gamemode Editor — DenniXD ATS V2.4.5")
+    EditorGui := Gui("+AlwaysOnTop -MaximizeBox", "Gamemode Editor — DenniXD ATS V2.4.3")
     EditorGui.BackColor := "111111"
     EditorGui.OnEvent("Close", (*) => CloseSequenceEditor())
 
@@ -3070,7 +2869,34 @@ StopEditorRecording() {
     SetEditorStatus("  ⏹ Stopped — review steps, reorder if needed, then Save", "cFFAA00")
 }
 
+F7:: {
+    global EditorOpen
+    if (EditorOpen)
+        StartEditorRecording(true)
+}
+F8:: {
+    global EditorOpen
+    if (EditorOpen)
+        StartEditorRecording(false)
+}
+F9:: {
+    global EditorOpen
+    if (EditorOpen)
+        StopEditorRecording()
+}
 
+~*a:: EditorCaptureKey("a")
+~*d:: EditorCaptureKey("d")
+~*w:: EditorCaptureKey("w")
+~*s:: EditorCaptureKey("s")
+~*f:: EditorCaptureKey("f")
+~*e:: EditorCaptureKey("e")
+~*r:: EditorCaptureKey("r")
+~*q:: EditorCaptureQ()
+~*Space:: EditorCaptureKey("Space")
+~*Enter:: EditorCaptureKey("Enter")
+~*\:: EditorCaptureKey("\")
+~*LButton:: EditorCaptureMouse()
 
 EditorCaptureKey(keyName) {
     global EditorRecording, EditorSteps, EditorOpen
@@ -3099,7 +2925,7 @@ EditorCaptureMouse() {
     if (!IsSet(EditorRecording) || !EditorRecording || !EditorOpen)
         return
     MouseGetPos(&mx, &my, &mWin)
-    edWin := WinExist("Gamemode Editor — DenniXD ATS V2.4.5")
+    edWin := WinExist("Gamemode Editor — DenniXD ATS V2.4.3")
     if (edWin && mWin == edWin)
         return
     EditorSteps.Push(Map("type","click","x",mx,"y",my,"dur",80))
@@ -3349,7 +3175,7 @@ SaveEditorSequence() {
 ; Writes multiple slot keys into one file (preserves all slots)
 SaveMovementFileSlots(path, keys) {
     global CustomSeqs, SlotTriggers
-    out := "; DenniXD ATS V2.4.5 — saved from editor`n`n"
+    out := "; DenniXD ATS V2.4.3 — saved from editor`n`n"
     for slotKey in keys {
         if (!CustomSeqs.Has(slotKey))
             continue
