@@ -15,7 +15,7 @@ SetTimer(CheckForUpdates, -1500)
 SetDefaultMouseSpeed(0)
 CoordMode("Mouse", "Screen")
 ; ================================================================
-;   DenniXD ATS MACRO V2.4.6 — Combined Double Dungeon + Abandon Village
+;   DenniXD ATS MACRO V3.6 — Combined Double Dungeon + Abandon Village
 ; ================================================================
 ; ---------------- INITIALIZE FILES ----------------
 InitFiles() {
@@ -27,7 +27,7 @@ InitFiles() {
     }
     ; Create empty Sequences.txt if missing
     if (!FileExist(seqPath)) {
-        FileAppend("; DenniXD ATS Macro V2.4.6 - Sequences`n; Auto-generated on first run`n", seqPath, "UTF-8")
+        FileAppend("; DenniXD ATS Macro V3.6 - Sequences`n; Auto-generated on first run`n", seqPath, "UTF-8")
     }
 }
 InitFiles()
@@ -35,7 +35,7 @@ InitFiles()
 ; ---------------- INITIALIZE SETTINGS ----------------
 global IniFile        := A_ScriptDir "\Settings.ini"
 global DiscordWebhook := IniRead(IniFile, "Settings", "Webhook", "")
-global MacroVersion      := "2.4.6"
+global MacroVersion      := "3.6"
 global CreatorSpeed      := 32      ; macro creator's in-game speed (do not change)
 global UserSpeed         := 32      ; user's in-game speed (set in Settings)
 global SpeedScale        := 1.0     ; calculated as CreatorSpeed / UserSpeed
@@ -52,6 +52,7 @@ global DemonRuns       := 0
 global DungeonRuns          := 0
 global RejoinCount     := 0
 global SessionStart    := A_TickCount
+global MiniMode        := false  ; whether compact overlay is showing
 global RaidStartTime   := 0
 global HasRunSpecial   := false
 global AVEntryFails    := 0
@@ -60,6 +61,8 @@ global DebugVisible    := false
 global RobloxTitle     := "Roblox"
 global CurrentRaidStep := 0
 global LastRejoinTime  := 0   ; tracks last time PS link was opened (ms)
+global TextRiftLobby   := "|<>FFFFFF-323232$123.000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000007U01y0000000000000001z00zs00000000007zz00Ts0Tz00000000001zzz03z03zs7000000000Tzzy0Ts0zz3y000000003zzzs3z0DzsTs00000000TzzzUDs1zz3z000000003zzzy1y0DzkTs00000000Tzzzk001zU3z000000003zzzz000Ts0Ts00000000Ts1zs003z03z000000003z03zU00Ts0Ts00000000Ts0DwDkTzzzzz0Dzk0003z01zXz7zzzzzw3zzU000Ts0DwTszzzzzzUzzy0003z01zXz7zzzzzwDzzk000Ts0DwTszzzzzzVzzw0003z03zXz7zzzzzwTzzU000Ts0zsTszzzzzzXz0s0003zzzz3z3zzzzzsTs00000TzzzkTs3z03z01zU00003zzzy3z0Ts0Ts0Dzk0000TzzzUTs3z03z01zzk0003zzzs3z0Ts0Ts0DzzU000TzzzUTs3z03z00zzy0003zzzw3z0Ts0Ts03zzk000TzzzkTs3z03z007zz0003z0Dy3z0Ts0Ts007zs000Ts0zkTs3z03z0003z0003z07z3z0Ts0TzUD0Ds000Ts0TsTs3z03zy3y3z0003z03zXz0Ts0DzsTzzs000Ts0TwTs3z01zz3zzy0003z01zXz0Ts07zsTzzk000Ts0DwTs1z00Tz3zzw0001z00z1z0Ds01zk7zz00007U03U7U0w001w07z0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000004"
+global RiftLobbyImportPath := ""  ; path to user-imported Rift lobby movement file
 global AutoRejoinEnabled := (IniRead(IniFile, "Settings", "AutoRejoin", "1") == "1")
 ; ── Farm mode toggles (true = enabled) ──
 global ModeAbandonVillage := true    ; Abandon Village (ex Demon Slayer)
@@ -198,7 +201,7 @@ global Text0  := "|<>D83A37-323232$71.00000000000000000000000000000T00000000003z
 ; ================================================================
 ;   GUI SETUP  —  Modern dark card layout
 ; ================================================================
-MyGui := Gui("+AlwaysOnTop -Caption +Border", "DenniXD ATS Macro V2.4.6")
+MyGui := Gui("+AlwaysOnTop -Caption +Border", "DenniXD ATS Macro V3.6")
 MyGui.BackColor := "0D0D0D"
 OnMessage(0x0201, WM_LBUTTONDOWN)
 WM_LBUTTONDOWN(wParam, lParam, msg, hwnd) {
@@ -216,11 +219,13 @@ MyGui.AddText("x0 y0 w430 h3 Background7B2FFF", "")   ; purple accent strip
 MyGui.SetFont("s13 cFFFFFF Bold", "Segoe UI")
 MyGui.AddText("x16 y14 w300", "DenniXD ATS MACRO")
 MyGui.SetFont("s8 c555555 Norm", "Segoe UI")
-MyGui.AddText("x16 y32 w300", "V2.4.6  ·  Double Dungeon + Abandon Village")
+MyGui.AddText("x16 y32 w300", "V3.6  ·  Double Dungeon + Abandon Village")
 
 ; Close [ X ]
 MyGui.SetFont("s10 cFF4455 Bold", "Segoe UI")
 MyGui.AddText("x404 y10 w22 h22 Center", "✕").OnEvent("Click", (*) => ExitApp())
+MyGui.SetFont("s10 c888888 Norm", "Segoe UI")
+MyGui.AddText("x378 y10 w22 h22 Center", "⊟").OnEvent("Click", (*) => ToggleMiniMode())
 
 ; ── Status pill ──────────────────────────────────────────────────
 MyGui.SetFont("s9 cAAAAAA Norm", "Segoe UI")
@@ -366,61 +371,141 @@ MyGui.AddText("x16 y458 w398 Center", "F1 Start  ·  F2 Stop  ·  F3 Kill  ·  F
 
 MyGui.Show("w430 h474")
 
+; ================================================================
+;   MINI MODE OVERLAY  —  compact top-right widget
+; ================================================================
+global MiniGui := Gui("+AlwaysOnTop -Caption +ToolWindow +E0x20", "ATS Mini")
+MiniGui.BackColor := "0D0D0D"
+MiniGui.SetFont("s7 cFFFFFF Norm", "Segoe UI")
+
+; Drag support
+OnMessage(0x0201, WM_LBUTTONDOWN_Mini)
+WM_LBUTTONDOWN_Mini(wParam, lParam, msg, hwnd) {
+    global MiniGui
+    if (hwnd == MiniGui.Hwnd)
+        PostMessage(0xA1, 2,,, MiniGui.Hwnd)
+}
+
+; Purple accent top bar
+MiniGui.AddText("x0 y0 w280 h2 Background7B2FFF", "")
+
+; Title + status row
+MiniGui.SetFont("s7 c7B2FFF Bold", "Segoe UI")
+MiniGui.AddText("x8 y6 w100", "ATS MACRO")
+MiniGui.SetFont("s7 c00FF99 Bold", "Segoe UI")
+global MiniStatus := MiniGui.AddText("x90 y6 w140", "● Idle")
+
+; Expand + Close buttons (top right)
+MiniGui.SetFont("s7 c888888 Norm", "Segoe UI")
+MiniGui.AddText("x232 y4 w18 h16 Center", "⊞").OnEvent("Click", (*) => ToggleMiniMode())
+MiniGui.SetFont("s7 cFF4455 Bold", "Segoe UI")
+MiniGui.AddText("x252 y4 w18 h16 Center", "✕").OnEvent("Click", (*) => ExitApp())
+
+; Divider
+MiniGui.SetFont("s6", "Segoe UI")
+MiniGui.AddText("x0 y20 w280 h1 Background222222", "")
+
+; Stat row 1: AV | DD | Rift | Raid
+MiniGui.SetFont("s6 c888888 Norm", "Segoe UI")
+MiniGui.AddText("x8  y24 w56", "AV")
+MiniGui.AddText("x72 y24 w56", "DD")
+MiniGui.AddText("x136 y24 w56", "RIFT")
+MiniGui.AddText("x200 y24 w68", "RAID")
+MiniGui.SetFont("s9 cFFFFFF Bold", "Segoe UI")
+global MiniAV    := MiniGui.AddText("x8  y33 w56", "0")
+global MiniDD    := MiniGui.AddText("x72 y33 w56", "0")
+global MiniRift  := MiniGui.AddText("x136 y33 w56", "0")
+global MiniRaid  := MiniGui.AddText("x200 y33 w68", "0")
+
+; Divider
+MiniGui.SetFont("s6", "Segoe UI")
+MiniGui.AddText("x0 y48 w280 h1 Background1A1A1A", "")
+
+; Stat row 2: Rejoined | Uptime
+MiniGui.SetFont("s6 c888888 Norm", "Segoe UI")
+MiniGui.AddText("x8  y52 w100", "REJOINED")
+MiniGui.AddText("x116 y52 w152", "UPTIME")
+MiniGui.SetFont("s9 cFFFFFF Bold", "Segoe UI")
+global MiniRejoin := MiniGui.AddText("x8  y61 w100", "0")
+MiniGui.SetFont("s8 cFFFFFF Bold", "Segoe UI")
+global MiniUptime := MiniGui.AddText("x116 y61 w152", "0h 0m 0s")
+
+; Divider
+MiniGui.SetFont("s6", "Segoe UI")
+MiniGui.AddText("x0 y76 w280 h1 Background222222", "")
+
+; Buttons: START | STOP | QUIT
+MiniGui.SetFont("s7 c0D0D0D Bold", "Segoe UI")
+global MiniBtnStart := MiniGui.AddButton("x8  y80 w80 h22 Background00CC66", "▶ START")
+global MiniBtnStop  := MiniGui.AddButton("x96 y80 w80 h22 BackgroundFF3355", "■ STOP")
+global MiniBtnQuit  := MiniGui.AddButton("x184 y80 w80 h22 Background333333", "QUIT")
+MiniBtnStart.Opt("cFFFFFF")
+MiniBtnStop.Opt("cFFFFFF")
+MiniBtnQuit.Opt("cFFFFFF")
+MiniBtnStart.OnEvent("Click", (*) => StartMacro())
+MiniBtnStop.OnEvent("Click",  (*) => StopMacro())
+MiniBtnQuit.OnEvent("Click",  (*) => ExitApp())
+
 ; ── Settings Popup GUI ────────────────────────────────────────────
 global SettingsGui := Gui("+AlwaysOnTop +ToolWindow", "ATS Settings")
 SettingsGui.BackColor := "0D0D0D"
 SettingsGui.SetFont("s9 cFFFFFF Norm", "Segoe UI")
 
-SettingsGui.AddText("x16 y14 w348 cAAAAAA", "DISCORD WEBHOOK URL")
-global EditWeb := SettingsGui.AddEdit("x16 y30 w348 h24 Background1A1A1A", DiscordWebhook)
+SettingsGui.AddText("x16 y14 w388 cAAAAAA", "DISCORD WEBHOOK URL")
+global EditWeb := SettingsGui.AddEdit("x16 y30 w388 h26 Background1A1A1A", DiscordWebhook)
 
-SettingsGui.AddText("x16 y66 w348 cAAAAAA", "ROBLOX PRIVATE SERVER LINK")
-global EditPS := SettingsGui.AddEdit("x16 y82 w348 h24 Background1A1A1A", PrivateServer)
+SettingsGui.AddText("x16 y72 w388 cAAAAAA", "ROBLOX PRIVATE SERVER LINK")
+global EditPS := SettingsGui.AddEdit("x16 y88 w388 h26 Background1A1A1A", PrivateServer)
 
-global ChkAutoRejoin := SettingsGui.AddCheckbox("x16 y106 w348 cFFFFFF Checked", "Auto-Rejoin PS Server every 1 hour")
+global ChkAutoRejoin := SettingsGui.AddCheckbox("x16 y122 w388 cFFFFFF Checked", "Auto-Rejoin PS Server every 1 hour")
 ChkAutoRejoin.OnEvent("Click", (*) => (AutoRejoinEnabled := ChkAutoRejoin.Value ? true : false))
 
-SettingsGui.AddText("x16 y134 w348 cAAAAAA", "SPEED SCALING")
-SettingsGui.AddText("x16 y134 w160 c888888", "Creator Speed (default)")
-SettingsGui.AddText("x196 y134 w160 c888888", "Your Speed")
-global EditCreatorSpeed := SettingsGui.AddEdit("x16 y150 w160 h24 Background1A1A1A", CreatorSpeed)
-global EditSpeed        := SettingsGui.AddEdit("x196 y150 w160 h24 Background1A1A1A", UserSpeed)
-SettingsGui.AddText("x16 y178 w348 c555555", "Scale = Creator ÷ Your Speed  (33÷30 = 1.10x slower)")
+SettingsGui.AddText("x16 y156 w388 cAAAAAA", "SPEED SCALING")
+SettingsGui.AddText("x16 y172 w180 c888888", "Creator Speed (default)")
+SettingsGui.AddText("x214 y172 w180 c888888", "Your Speed")
+global EditCreatorSpeed := SettingsGui.AddEdit("x16 y188 w180 h26 Background1A1A1A", CreatorSpeed)
+global EditSpeed        := SettingsGui.AddEdit("x214 y188 w180 h26 Background1A1A1A", UserSpeed)
+global LblSpeedScale := SettingsGui.AddText("x16 y220 w388 c555555", "Scale = " CreatorSpeed " ÷ " UserSpeed " = " Round(CreatorSpeed / UserSpeed, 2) "x")
 
-SettingsGui.AddText("x16 y210 w348 cAAAAAA", "UI ACCENT COLOR (HEX)")
-global EditCol := SettingsGui.AddEdit("x16 y226 w100 h24 Background1A1A1A", CustomColor)
+SettingsGui.AddText("x16 y252 w388 cAAAAAA", "UI ACCENT COLOR (HEX)")
+global EditCol := SettingsGui.AddEdit("x16 y268 w110 h26 Background1A1A1A", CustomColor)
 
 SettingsGui.SetFont("s8 cFFFFFF Norm", "Segoe UI")
-SettingsGui.AddText("x16 y262 w348 cAAAAAA", "TOOLS")
-global BtnTestSS      := SettingsGui.AddButton("x16 y278 w168 h28 Background333333", "📸  Test Screenshot")
+SettingsGui.AddText("x16 y308 w388 cAAAAAA", "TOOLS")
+global BtnTestSS      := SettingsGui.AddButton("x16 y324 w194 h30 Background333333", "📸  Test Screenshot")
 BtnTestSS.OnEvent("Click", (*) => CaptureAndSend(true))
-global BtnDebug       := SettingsGui.AddButton("x192 y278 w172 h28 Background333333", "🔍  Toggle Debug")
+global BtnDebug       := SettingsGui.AddButton("x208 y324 w194 h30 Background333333", "🔍  Toggle Debug")
 BtnDebug.OnEvent("Click", ToggleDebugBox)
-global BtnTestJoin    := SettingsGui.AddButton("x16 y312 w168 h28 Background1A3A2A", "🔗  Test Join PS")
+global BtnTestJoin    := SettingsGui.AddButton("x16 y360 w194 h30 Background1A3A2A", "🔗  Test Join PS")
 BtnTestJoin.OnEvent("Click", (*) => TestJoinPS())
-global BtnTestWebhook := SettingsGui.AddButton("x192 y312 w172 h28 Background1A1A3A", "📡  Test Webhook")
+global BtnTestWebhook := SettingsGui.AddButton("x208 y360 w194 h30 Background1A1A3A", "📡  Test Webhook")
 BtnTestWebhook.OnEvent("Click", (*) => CaptureAndSend(true))
 
-SettingsGui.AddText("x16 y352 w348 cAAAAAA", "MOVEMENT FILES")
-global BtnLoadSeqFile := SettingsGui.AddButton("x16 y368 w348 h28 Background1A2A1A", "📂  Load Custom Sequence File")
+SettingsGui.AddText("x16 y406 w388 cAAAAAA", "MOVEMENT FILES")
+global BtnLoadSeqFile := SettingsGui.AddButton("x16 y422 w388 h30 Background1A2A1A", "📂  Load Custom Sequence File")
 BtnLoadSeqFile.OnEvent("Click", (*) => LoadCustomSeqFile())
-global LblSeqFile     := SettingsGui.AddText("x16 y400 w348 c888888", "No custom file loaded")
-global BtnReloadCustom := SettingsGui.AddButton("x16 y424 w110 h26 Background1A2A1A", "🔄 Custom")
+global LblSeqFile     := SettingsGui.AddText("x16 y458 w388 c888888", "No custom file loaded")
+global BtnReloadCustom := SettingsGui.AddButton("x16 y480 w116 h28 Background1A2A1A", "🔄 Custom")
 BtnReloadCustom.OnEvent("Click", (*) => ReloadMovementFolder(FolderCustom))
-global BtnReloadRaids  := SettingsGui.AddButton("x134 y424 w110 h26 Background1A1A2A", "🔄 Raids")
+global BtnReloadRaids  := SettingsGui.AddButton("x140 y480 w116 h28 Background1A1A2A", "🔄 Raids")
 BtnReloadRaids.OnEvent("Click", (*) => ReloadMovementFolder(FolderRaids))
-global BtnReloadSummon := SettingsGui.AddButton("x252 y424 w112 h26 Background2A1A1A", "🔄 Summon")
+global BtnReloadSummon := SettingsGui.AddButton("x264 y480 w132 h28 Background2A1A1A", "🔄 Summon")
 BtnReloadSummon.OnEvent("Click", (*) => ReloadMovementFolder(FolderSummon))
 
-SettingsGui.AddText("x16 y462 w348 cAAAAAA", "SUMMON MAP")
-global LblSummonSec    := SettingsGui.AddText("x16 y462 w348 cAAAAAA", "")  ; compat ref
-global DdlSummonMap    := SettingsGui.AddDropDownList("x16 y478 w348", ["Dungeon Town", "Reaper Society", "Map 3", "Map 4", "Map 5"])
-global ChkSummonActive := SettingsGui.AddCheckbox("x16 y510 w348 cFFFFFF", "Enable Summon Each Run")
+SettingsGui.AddText("x16 y522 w388 cAAAAAA", "RIFT LOBBY MOVEMENT")
+global LblRiftImport := SettingsGui.AddText("x16 y540 w260 c888888", "No file imported")
+global BtnRiftImport := SettingsGui.AddButton("x284 y536 w112 h28 Background1A2A2A", "📂 Import")
+BtnRiftImport.OnEvent("Click", (*) => ImportRiftMovement())
+
+SettingsGui.AddText("x16 y576 w388 cAAAAAA", "SUMMON MAP")
+global LblSummonSec    := SettingsGui.AddText("x16 y576 w388 cAAAAAA", "")  ; compat ref
+global DdlSummonMap    := SettingsGui.AddDropDownList("x16 y592 w260", ["Dungeon Town", "Reaper Society", "Map 3", "Map 4", "Map 5"])
+global ChkSummonActive := SettingsGui.AddCheckbox("x16 y626 w388 cFFFFFF", "Enable Summon Each Run")
 
 SettingsGui.SetFont("s9 c0D0D0D Bold", "Segoe UI")
-global BtnSave        := SettingsGui.AddButton("x16 y546 w168 h32 Background7B2FFF", "SAVE & APPLY")
-global BtnUpdate      := SettingsGui.AddButton("x192 y546 w172 h32 Background2A2A2A", "🔄 Check Updates")
-global BtnForceUpdate := SettingsGui.AddButton("x16 y584 w348 h24 Background3A1A1A", "⚠ Force Update (re-download everything)")
+global BtnSave        := SettingsGui.AddButton("x16 y664 w194 h34 Background7B2FFF", "SAVE & APPLY")
+global BtnUpdate      := SettingsGui.AddButton("x208 y664 w194 h34 Background2A2A2A", "🔄 Check Updates")
+global BtnForceUpdate := SettingsGui.AddButton("x16 y704 w388 h26 Background3A1A1A", "⚠ Force Update (re-download everything)")
 BtnSave.OnEvent("Click", SaveSettings)
 BtnUpdate.OnEvent("Click", (*) => CheckForUpdates(false))
 BtnForceUpdate.OnEvent("Click", (*) => CheckForUpdates(true))
@@ -1034,80 +1119,182 @@ DDAnyStageSeen(x1, y1, x2, y2) {
 ; ================================================================
 ;   RIFT MODE
 ; ================================================================
+ImportRiftMovement() {
+    global RiftLobbyImportPath, LblRiftImport, SeqFile, FolderCustom
+    chosen := FileSelect(3,, "Select Rift Lobby Movement File", "Text Files (*.txt)")
+    if (chosen == "")
+        return
+    ; Copy file into Custom folder as Rift.txt
+    destPath := FolderCustom "\Rift.txt"
+    FileCopy(chosen, destPath, 1)
+    RiftLobbyImportPath := destPath
+    SplitPath(chosen, &fname)
+    LblRiftImport.Text := "Loaded: " fname
+    LoadSequences()
+    MsgBox("Rift movement imported!`n" fname, "Rift Import", "Icon!")
+}
+
+; ── Rift timer helper — returns seconds until next XX:00/15/30/45 boundary ──
+RiftSecsUntilNext() {
+    sec := Integer(FormatTime(, "ss"))
+    mn  := Integer(FormatTime(, "mm"))
+    ; seconds into current 15-min window
+    secsIntoWindow := (Mod(mn, 15) * 60) + sec
+    return (900 - secsIntoWindow)  ; 900 = 15*60
+}
+
+; ── Mini mode toggle ──────────────────────────────────────────
+ToggleMiniMode() {
+    global MiniMode, MiniGui, MyGui
+    MiniMode := !MiniMode
+    if (MiniMode) {
+        MyGui.Hide()
+        ; Position top-right of primary monitor
+        monRight  := SysGet(78)   ; SM_CXVIRTUALSCREEN width fallback
+        monRight  := SysGet(16)   ; SM_CXFULLSCREEN
+        MiniGui.Show("x" (monRight - 290) " y4 w280 h106 NoActivate")
+    } else {
+        MiniGui.Hide()
+        MyGui.Show()
+    }
+}
+
+; ── Rift: are we within the danger zone? (XX:14/29/44/59 = last second before boundary) ──
+RiftInDangerZone() {
+    sec := Integer(FormatTime(, "ss"))
+    mn  := Integer(FormatTime(, "mm"))
+    secsLeft := RiftSecsUntilNext()
+    ; Danger = <=1s before boundary (XX:59, XX:14, XX:29, XX:44 with sec >= 59)
+    ; Or more practically: if next boundary <2s away stop launching
+    return (secsLeft <= 2)
+}
+
+; ── Rift: is it exactly a boundary second? XX:00 / XX:15 / XX:30 / XX:45 ──
+RiftAtBoundary() {
+    sec := Integer(FormatTime(, "ss"))
+    mn  := Integer(FormatTime(, "mm"))
+    return (sec == 0 && Mod(mn, 15) == 0)
+}
+
 RunRift() {
-    global Running, RiftRuns, RaidStartTime, CurrentRaidStep
+    global Running, RiftRuns, RaidStartTime, CurrentRaidStep, TextRiftLobby
     global TextNightmare, TextMedium, TextEasy, TextHard, StartX, StartY, EndX, EndY
     global Text0, Text1, Text2, Text4, Text5, Text6, Text7, Text8, Text9
     GuiStatus.Text := "Rift — Starting"
     RaidStartTime  := A_TickCount
+    ft             := GetFindText()
 
-    ; Run custom Rift entry sequence (same editor system as Custom gamemode)
-    RunCustomOrDefault("Rift_Entry", (*) => 0)
-
-    ; ── Step 1: Confirm match detected within 1 minute ──
-    ; Checks for any difficulty text OR any enemy count text
-    GuiStatus.Text := "Rift — Waiting for match detection..."
-    matchDeadline := A_TickCount + 60000
-    matchFound    := false
-    Loop {
-        if (!Running)
-            return
-        if (A_TickCount > matchDeadline) {
-            GuiStatus.Text := "Rift — No match detected after 1 min, returning to lobby..."
-            CaptureAndSend(false)
-            ReturnToLobby()
-            return
+    ; ── Phase 0: Check if we are about to hit a boundary (XX:14/29/44/59) ──
+    ; If next boundary is within 2s, hold off until it passes, then force-enter
+    secsLeft := RiftSecsUntilNext()
+    if (secsLeft <= 2) {
+        GuiStatus.Text := "Rift — Waiting for boundary to pass..."
+        ; Wait until we cross XX:00/15/30/45
+        Loop {
+            if (!Running)
+                return
+            if (RiftAtBoundary() || RiftSecsUntilNext() > 5)
+                break
+            Sleep(200)
         }
-        ; Check difficulty text (any mode)
-        for txtVar in [TextNightmare, TextMedium, TextHard, TextEasy] {
-            try {
-                if GetFindText().FindText(&fx, &fy, 883, 51, 1037, 86, 0.15, 0.15, txtVar) {
-                    matchFound := true
-                    break
-                }
-            }
-        }
-        if (matchFound)
-            break
-        ; Check enemy count as fallback
-        for txtVar in [Text1, Text2, Text4, Text5, Text6, Text7, Text8, Text9] {
-            try {
-                if GetFindText().FindText(&fx, &fy, StartX, StartY, EndX, EndY, 0.15, 0.15, txtVar) {
-                    matchFound := true
-                    break
-                }
-            }
-        }
-        if (matchFound)
-            break
-        Sleep(1000)
+        Sleep(500)
+        GuiStatus.Text := "Rift — Boundary passed, force-entering..."
     }
 
-    GuiStatus.Text := "Rift — Match confirmed, running..."
+    ; ── Phase 1: Run Rift_Entry lobby movement sequence ──
+    GuiStatus.Text := "Rift — Running entry sequence..."
+    RunCustomOrDefault("Rift_Entry", (*) => 0)
 
-    ; ── Step 2: Wait for 15min window to complete ──
+    ; ── Phase 2: Wait for lobby found UI (TextRiftLobby) OR timeout ──
+    ; If lobby UI detected — stop moving and wait for nightmare text (game started)
+    GuiStatus.Text := "Rift — Looking for lobby..."
+    lobbyDeadline := A_TickCount + 30000  ; 30s to find lobby
+    lobbyFound    := false
     Loop {
         if (!Running)
             return
-        currMin := Integer(FormatTime(, "mm"))
-        ; Fire at XX:00, XX:15, XX:30, XX:45
-        if (Mod(currMin, 15) == 0) {
-            GuiStatus.Text := "Rift — 15min window complete, wrapping up..."
+        if (A_TickCount > lobbyDeadline)
+            break
+        try {
+            if ft.FindText(&fx, &fy, 563, 179, 719, 238, 0.15, 0.15, TextRiftLobby) {
+                lobbyFound := true
+                break
+            }
+        }
+        Sleep(200)
+    }
+
+    if (lobbyFound) {
+        ; Found lobby UI — wait for nightmare text (game starting)
+        GuiStatus.Text := "Rift — Lobby found! Waiting for game start..."
+        gameDeadline := A_TickCount + 60000  ; 60s max wait
+        gameStarted  := false
+        Loop {
+            if (!Running)
+                return
+            if (A_TickCount > gameDeadline) {
+                GuiStatus.Text := "Rift — Game start timeout, returning..."
+                ReturnToLobby()
+                return
+            }
+            try {
+                if ft.FindText(&fx, &fy, 563, 179, 719, 238, 0.15, 0.15, TextNightmare) {
+                    gameStarted := true
+                    break
+                }
+            }
+            Sleep(300)
+        }
+        if (!gameStarted)
+            return
+    }
+
+    ; ── Phase 3: Game confirmed — run Rift stage sequence ──
+    GuiStatus.Text := "Rift — In game! Running stage sequence..."
+    RunCustomOrDefault("Rift_Custom", (*) => 0)
+
+    ; ── Phase 4: Run until next XX:00/15/30/45 boundary ──
+    GuiStatus.Text := "Rift — Running until next boundary..."
+    Loop {
+        if (!Running)
+            return
+        secsLeft := RiftSecsUntilNext()
+        ; Stop with 2s to spare before boundary (XX:13/28/43/58)
+        if (secsLeft <= 2) {
+            GuiStatus.Text := "Rift — Boundary approaching — stopping run..."
             break
         }
-        ; Safety timeout 14 min 30s from start
+        ; Safety timeout 14.5 min
         if (A_TickCount - RaidStartTime > 870000) {
             GuiStatus.Text := "Rift — Safety timeout, wrapping up..."
             break
         }
-        Sleep(5000)
+        Sleep(500)
+    }
+
+    ; ── Phase 5: Wait at boundary, then force-leave and re-enter ──
+    GuiStatus.Text := "Rift — Waiting for boundary (XX:00/15/30/45)..."
+    Loop {
+        if (!Running)
+            return
+        if (RiftAtBoundary())
+            break
+        Sleep(200)
+    }
+
+    ; Force leave current game
+    GuiStatus.Text := "Rift — Boundary hit! Force leaving game..."
+    if WinExist(RobloxTitle) {
+        WinActivate(RobloxTitle)
+        SafeClick(500, 500)
+        Sleep(200)
     }
 
     RiftRuns += 1
     GuiStatus.Text := "Rift — Run complete [" RiftRuns "]"
-    Sleep(5000)
+    Sleep(2000)
     CaptureAndSend(false)
-    ReturnToLobby()
+    ; Don't ReturnToLobby — MainLoop will call RunRift again for next cycle
 }
 
 
@@ -1836,7 +2023,7 @@ ToggleSettings(*) {
     } else {
         ; Centre popup relative to main GUI
         MyGui.GetPos(&mx, &my, &mw)
-        SettingsGui.Show("x" . (mx - 380 - 10) . " y" . my . " w380 h622")
+        SettingsGui.Show("x" . (mx - 420 - 10) . " y" . my . " w420 h760")
     }
 }
 ToggleDebugBox(*) {
@@ -1878,6 +2065,7 @@ SaveSettings(*) {
     EditCreatorSpeed.Value := CreatorSpeed
     EditSpeed.Value        := UserSpeed
     UpdateSpeedScale()
+    LblSpeedScale.Text := "Scale = " CreatorSpeed " ÷ " UserSpeed " = " Round(CreatorSpeed / UserSpeed, 2) "x"
     CustomColor     := EditCol.Value
     MyGui.BackColor := CustomColor
     IniWrite(DiscordWebhook, IniFile, "Settings", "Webhook")
@@ -1927,6 +2115,16 @@ UpdateUI() {
     GuiCustomLabel.Text := CustomRunName
     GuiRejoin.Text      := RejoinCount
     GuiUptime.Text      := (e // 3600000) . "h " . (Mod(e, 3600000) // 60000) . "m " . (Mod(e, 60000) // 1000) . "s"
+    ; Sync mini overlay
+    if (MiniMode) {
+        MiniStatus.Text  := GuiStatus.Text
+        MiniAV.Text      := DemonRuns
+        MiniDD.Text      := DungeonRuns
+        MiniRift.Text    := RiftRuns
+        MiniRaid.Text    := RaidRuns
+        MiniRejoin.Text  := RejoinCount
+        MiniUptime.Text  := (e // 3600000) . "h " . (Mod(e, 3600000) // 60000) . "m " . (Mod(e, 60000) // 1000) . "s"
+    }
 }
 
 CaptureAndSend(IsManualTest := false) {
@@ -1946,7 +2144,7 @@ CaptureAndSend(IsManualTest := false) {
     Duration := h . "h " . m . "m " . s . "s"
     global RiftRuns, RaidRuns, RaidType, CustomRuns, CustomRunName
     currStatus := MacroPaused ? "⏸ Paused" : "● Running"
-    Payload := '{"embeds": [{"title": "DenniXD ATS Macro V2.4.6","color": 8323327,'
+    Payload := '{"embeds": [{"title": "DenniXD ATS Macro V3.6","color": 8323327,'
              . '"image": {"url": "attachment://ss.png"},'
              . '"fields": ['
              . '{"name": "🗡 Abandon Village",  "value": "' . DemonRuns   . ' runs", "inline": true},'
@@ -1957,7 +2155,7 @@ CaptureAndSend(IsManualTest := false) {
              . '{"name": "🔄 Rejoined",        "value": "' . RejoinCount . ' times", "inline": true},'
              . '{"name": "⏱ Uptime",          "value": "' . Duration    . '", "inline": true},'
              . '{"name": "📊 Status",          "value": "' . currStatus  . '", "inline": true}'
-             . '],"footer": {"text": "DenniXD ATS V2.4.6  ·  ' . FormatTime(, "HH:mm:ss") . '"}}]}'
+             . '],"footer": {"text": "DenniXD ATS V3.6  ·  ' . FormatTime(, "HH:mm:ss") . '"}}]}'
     try {
         FileOpen(JsonPath, "w", "UTF-8").Write(Payload)
         RunWait('curl.exe -s -F "payload_json=<' JsonPath '" -F "file=@' SSPath '" "' EditWeb.Value '"', , "Hide")
@@ -2030,7 +2228,7 @@ GenerateDefaultFiles() {
     global FolderCustom, FolderRaids, FolderSummon
 
     hdr := "; ================================================================`n"
-          . "; DenniXD ATS Macro V2.4.5 — Movement File (auto-generated)`n"
+          . "; DenniXD ATS Macro V3.5 — Movement File (auto-generated)`n"
           . "; Edit steps freely. Reload via Settings > Movement Files.`n"
           . "; Format:  SlotKey|key|keyname|ms  /  |click|x|y|ms  /  |sleep|ms`n"
           . "; ================================================================`n`n"
@@ -2775,7 +2973,7 @@ OpenSequenceEditor() {
     EditorGamemode := "DD"
     EditorSlotKey  := "DD_EnterRaid"
 
-    EditorGui := Gui("+AlwaysOnTop -MaximizeBox", "Gamemode Editor — DenniXD ATS V2.4.5")
+    EditorGui := Gui("+AlwaysOnTop -MaximizeBox", "Gamemode Editor — DenniXD ATS V3.5")
     EditorGui.BackColor := "111111"
     EditorGui.OnEvent("Close", (*) => CloseSequenceEditor())
 
@@ -2883,7 +3081,7 @@ OpenSequenceEditor() {
     EditorGui.SetFont("s8 c7B2FFF Bold", "Segoe UI")
     global LblSaveFile := EditorGui.AddText("x16 y624 w530 Hidden", "── SAVE CUSTOM MACRO AS FILE ─────────────────────────────────────────")
     EditorGui.SetFont("s9 cFFFFFF Norm", "Segoe UI")
-    global EditFileName := EditorGui.AddEdit("x16 y642 w380 h28 Background1A1A1A Hidden", "MyCustomMacro")
+    global EditFileName := EditorGui.AddEdit("x16 y642 w388 h28 Background1A1A1A Hidden", "MyCustomMacro")
     EditorGui.SetFont("s8 c888888 Norm", "Segoe UI")
     EditorGui.AddText("x400 y647 w50 Hidden", ".txt")
     EditorGui.SetFont("s9 c0D0D0D Bold", "Segoe UI")
@@ -3120,7 +3318,7 @@ EditorCaptureMouse() {
     if (!IsSet(EditorRecording) || !EditorRecording || !EditorOpen)
         return
     MouseGetPos(&mx, &my, &mWin)
-    edWin := WinExist("Gamemode Editor — DenniXD ATS V2.4.5")
+    edWin := WinExist("Gamemode Editor — DenniXD ATS V3.5")
     if (edWin && mWin == edWin)
         return
     EditorSteps.Push(Map("type","click","x",mx,"y",my,"dur",80))
@@ -3370,7 +3568,7 @@ SaveEditorSequence() {
 ; Writes multiple slot keys into one file (preserves all slots)
 SaveMovementFileSlots(path, keys) {
     global CustomSeqs, SlotTriggers
-    out := "; DenniXD ATS V2.4.5 — saved from editor`n`n"
+    out := "; DenniXD ATS V3.5 — saved from editor`n`n"
     for slotKey in keys {
         if (!CustomSeqs.Has(slotKey))
             continue
