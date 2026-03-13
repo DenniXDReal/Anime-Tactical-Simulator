@@ -1,0 +1,135 @@
+﻿; DenniXD ATS V3.0.0 — saved from editor
+
+DD_EnterRaid|trigger|—
+DD_EnterRaid|click|872|684|80
+DD_EnterRaid|click|872|683|80
+DD_EnterRaid|key|f|78
+DD_EnterRaid|sleep|2000
+DD_EnterRaid|click|890|698|80
+DD_EnterRaid|click|890|698|80
+DD_EnterRaid|click|890|698|80
+DD_EnterRaid|click|890|698|80
+DD_EnterRaid|click|890|698|80
+DD_EnterRaid|key|s|1329
+DD_EnterRaid|key|s|2000
+DD_EnterRaid|key|f|90
+DD_EnterRaid|click|1137|646|80
+DD_EnterRaid|click|1136|646|500
+
+DD_Step1|trigger|12 enemies
+DD_Step1|click|1187|544|80
+DD_Step1|key|s|2079
+
+DD_Step2|trigger|11 enemies
+DD_Step2|click|1090|528|80
+DD_Step2|key|a|375
+DD_Step2|key|s|1141
+
+DD_Step3|trigger|10 enemies
+DD_Step3|click|959|378|80
+DD_Step3|key|d|750
+DD_Step3|key|w|344
+
+DD_Step4|trigger|8 enemies
+DD_Step4|click|1035|446|80
+DD_Step4|key|s|859
+
+DD_Step5|trigger|8 enemies
+DD_Step5|click|1150|421|80
+DD_Step5|key|s|1125
+DD_Step5|key|s|1157
+
+DD_Step6|trigger|7 enemies
+DD_Step6|click|1026|446|80
+DD_Step6|key|s|656
+
+DD_Step7|trigger|6 enemies
+DD_Step7|click|1107|523|80
+DD_Step7|key|a|906
+
+DD_Step8|trigger|5 enemies
+DD_Step8|click|1070|602|80
+DD_Step8|key|d|968
+DD_Step8|key|s|484
+
+DD_Step9|trigger|4 enemies
+DD_Step9|click|1101|601|80
+DD_Step9|key|s|2109
+DD_Step9|key|a|328
+
+DD_Step10|trigger|3 enemies
+DD_Step10|click|1075|431|80
+DD_Step10|key|s|953
+
+DD_Step11|trigger|2 enemies
+DD_Step11|click|1016|518|80
+DD_Step11|key|a|719
+
+DD_Step12|trigger|1 enemy
+DD_Step12|click|1075|478|80
+DD_Step12|key|d|828
+DD_Step12|key|s|546
+
+DD_Step13|trigger|10 enemies
+DD_Step13|click|817|592|80
+DD_Step13|key|w|3812
+DD_Step13|key|a|5641
+DD_Step13|key|s|1141
+DD_Step13|key|a|594
+DD_Step13|key|s|297
+
+DD_Step14|trigger|8 enemies
+DD_Step14|click|980|609|80
+DD_Step14|key|d|282
+DD_Step14|key|w|1484
+DD_Step14|key|d|1046
+DD_Step14|key|a|203
+
+DD_Step15|trigger|7 enemies
+DD_Step15|click|1181|795|80
+DD_Step15|key|d|328
+
+DD_Step16|trigger|6 enemies
+DD_Step16|click|1067|575|80
+DD_Step16|key|d|922
+
+DD_Step17|trigger|5 enemies
+DD_Step17|click|1003|565|80
+DD_Step17|key|d|7438
+DD_Step17|key|s|1141
+DD_Step17|key|d|485
+DD_Step17|key|s|265
+DD_Step17|key|d|1110
+DD_Step17|key|s|1828
+
+DD_Step18|trigger|4 enemies
+DD_Step18|click|1016|531|80
+DD_Step18|key|a|438
+DD_Step18|key|w|1312
+DD_Step18|key|a|1125
+DD_Step18|key|w|312
+DD_Step18|key|d|78
+
+DD_Step19|trigger|2 enemies
+DD_Step19|click|563|226|80
+DD_Step19|key|a|594
+
+DD_Step20|trigger|1 enemy
+DD_Step20|click|809|429|80
+DD_Step20|key|a|718
+
+DD_Step21|trigger|1 enemy
+DD_Step21|click|865|470|80
+DD_Step21|key|a|2719
+DD_Step21|key|s|2969
+
+DD_Finish|trigger|0 enemies
+DD_Finish|click|891|468|80
+DD_Finish|key|s|3078
+DD_Finish|key|e|203
+DD_Finish|key|e|94
+DD_Finish|key|e|93
+DD_Finish|key|e|94
+DD_Finish|key|e|94
+DD_Finish|key|d|187
+
