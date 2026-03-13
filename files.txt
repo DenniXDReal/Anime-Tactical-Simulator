@@ -1,0 +1,15 @@
+Lib/Globals.ahk
+Lib/GUI.ahk
+Lib/Webhook.ahk
+Lib/FileSystem.ahk
+Lib/Editor.ahk
+Core/MacroCore.ahk
+Core/Utils.ahk
+Core/Travel.ahk
+Core/MacroUI.ahk
+Gamemodes/AbandonVillage.ahk
+Gamemodes/DoubleDungeon.ahk
+Gamemodes/Rift.ahk
+Gamemodes/Raid.ahk
+Gamemodes/Summon.ahk
+FindText.ahk

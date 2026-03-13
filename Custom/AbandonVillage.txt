@@ -1,0 +1,26 @@
+﻿; DenniXD ATS V2.4.5 — saved from editor
+
+AV_Entry|trigger|—
+AV_Entry|click|1143|401|80
+AV_Entry|click|1143|401|80
+AV_Entry|key|f|156
+AV_Entry|click|878|448|80
+AV_Entry|click|878|448|80
+AV_Entry|click|878|448|80
+AV_Entry|click|878|448|80
+AV_Entry|key|s|547
+AV_Entry|click|1143|401|80
+AV_Entry|click|1143|401|80
+AV_Entry|key|f|156
+AV_Entry|click|878|448|80
+AV_Entry|click|878|448|80
+AV_Entry|click|878|448|80
+AV_Entry|click|878|448|80
+AV_Entry|key|s|547
+
+AV_Step1|trigger|2 enemies
+AV_Step1|key|a|3719
+AV_Step1|key|s|1078
+AV_Step1|key|w|2110
+AV_Step1|sleep|150000
+
